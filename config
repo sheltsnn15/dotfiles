@@ -9,12 +9,10 @@
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 
-set $mod Mod4
+set $mod Mod1
 
 # Font for window titles. Will also be used by the bar unless a different font
 # is used in the bar {} block below.
-## OLD >>> font pango:monospace 8
-## NEW vvv
 font pango: Noto Sans Regular 9
 
 # This font is widely installed, provides lots of unicode glyphs, right-to-left
@@ -43,20 +41,13 @@ bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOU
 floating_modifier $mod
 
 # start a terminal
-## OLD >>> bindsym $mod+Return exec i3-sensible-terminal
-## NEW vvv
-bindsym $mod+Return exec --no-startup-id xfce4-terminal
-## NEW vvv
+bindsym $mod+Return exec --no-startup-id alacritty
+# start a file_manager
 bindsym $mod+Shift+Return exec --no-startup-id thunar
 
+bindsym Print exec --no-startup-id flameshot
 
-
-
-## NEW vvv ########################################################
-
-bindsym Print exec --no-startup-id xfce4-screenshooter
-
-# some additional xfce4-screenshooter options
+# some additional flameshot options
 
 #   -c  Copy the screenshot to the clipboard
 #   -d  Delay in seconds before taking the screenshot
@@ -67,19 +58,14 @@ bindsym Print exec --no-startup-id xfce4-screenshooter
 #   -s  File path or directory where the screenshot will be saved
 #   -w  Take a screenshot of the active window
 
-### NEW ^^^ #######################################################
-
-
-
-
 # kill focused window
 bindsym $mod+Shift+q kill
 
 # start dmenu (a program launcher)
 ## OLD >>> bindsym $mod+d exec --no-startup-id dmenu_run
-## NEW vvv
+# NEW >>>
 bindsym $mod+Shift+d exec --no-startup-id dmenu_run
-## NEW vvv
+# run whisker menu
 bindsym $mod+d exec --no-startup-id xfce4-popup-whiskermenu
    
 # A more modern dmenu replacement is rofi:
@@ -138,6 +124,10 @@ bindsym $mod+a focus parent
 # focus the child container
 #bindsym $mod+d focus child
 
+######################
+# Workspace settings #
+######################
+
 # Define names for default workspaces for which we configure key bindings later on.
 # We use variables to avoid repeating the names in multiple places.
 set $ws1 "1"
@@ -175,16 +165,31 @@ bindsym $mod+Shift+8 move container to workspace number $ws8
 bindsym $mod+Shift+9 move container to workspace number $ws9
 bindsym $mod+Shift+0 move container to workspace number $ws10
 
+# bind program to workspace and focus to them on startup:
+assign [class="(?i)firefox"] $ws1
+assign [class="(?i)rambox"] $ws2
+assign [class="(?i)code"] $ws3
+# assign [class="Thunderbird"] $ws4
+assign [class="(?i)gimp"] $ws5
+assign [class="(?i)obsidian"] $ws6
+assign [class="(?i)celluloid"] $ws7
+
+# automatic set focus new window if it opens on another workspace than the current:
+for_window [class=(?i)firefox] focus
+for_window [class=(?i)rambox] focus
+for_window [class=(?i)code] focus
+# for_window [class=Thunderbird] focus
+for_window [class=(?i)gimp] focus
+for_window [class=(?i)obsidian] focus
+for_window [class=(?i)celluloid] focus
+
 # reload the configuration file
 bindsym $mod+Shift+c reload
+
 # restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
 bindsym $mod+Shift+r restart
 # exit i3 (logs you out of your X session)
 ## OLD >>> bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
-
-
-
-## NEW vvv ###########################################################
 
 mode "Exit" {
 	bindsym l exec i3-msg exit
@@ -200,10 +205,6 @@ bindsym $mod+Shift+e mode "Exit"; exec i3-nagbar \
 	-B '❌ [L]ogout' 	'i3-msg exit' \
 	-B '🌀️ [R]estart'	'systemctl -i reboot' \
 	-B '⚡️ [S]hutdown'	'systemctl -i poweroff' 
-
-## NEW ^^^ ############################################################
-
-
 
 
 # resize window (you can also use the mouse for that)
@@ -239,19 +240,22 @@ bindsym $mod+r mode "resize"
 ## OLD >>>         status_command i3status
 ## OLD >>> }
 
-## NEW vvv
-	exec --no-startup-id xfce4-panel --disable-wm-check &
-## NEW vvv
-    for_window [ class="Xfce4-panel" instance="xfce4-panel" ] floating enable
+# Runs the Xfce panel and disables the window manager check
+exec --no-startup-id xfce4-panel --disable-wm-check &
 
-## NEW vvv
-	exec --no-startup-id dunst & # notifications
-  
-## NEW vvv
-	exec --no-startup-id nitrogen --restore &
-## NEW vvv (pick one or the other of the following 2 lines to set the policy kit agent) 
-	#exec --no-startup-id /usr/libexec/xfce-polkit & # works with xfce 4.16
-	exec --no-startup-id /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 & # works with Ubuntu LTS / 20.04
+# Sets the floating property for the Xfce panel window.
+for_window [ class="Xfce4-panel" instance="xfce4-panel" ] floating enable
+
+# Dunst notification daemon
+exec --no-startup-id dunst &
+
+# Runs the feh image viewer and restores the last viewed image
+exec --no-startup-id feh --restore &
+
+# two lines run a policykit agent, which allows the user to perform privileged actions, such as installing software or changing system settings
+# (pick one or the other of the following 2 lines to set the policy kit agent) 
+#exec --no-startup-id /usr/libexec/xfce-polkit & # works with xfce 4.16
+exec --no-startup-id /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 
 ##### i3-gaps ##############
 for_window [class=".*"] border pixel 2 #*
@@ -259,12 +263,14 @@ gaps inner 6
 gaps outer 3
 #gaps horizontal 2
 
-### My Custom Autostarts
-#  picom compositor with my settings
+#####################
+# Custom Autostarts #
+#####################
+
+# picom compositor with my settings
 exec --no-startup-id picom --config ~/.config/picom/picom.conf
-
 # background image
-exec --no-startup-id feh --bg-fill /home/gtr-shelton/Pictures/wallhaven-zyxvqy.jpg
+exec --no-startup-id feh --bg-fill /home/shelton/Pictures/Wallpapers/wallhaven-zyxvqy.jpg
 
-# add rambox to workspace 2
-exec --no-startup-id i3-msg 'workspace 2:rambox; exec /usr/bin/rambox'
+
+
