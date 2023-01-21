@@ -11,3 +11,5 @@ fi
 eval "$(zoxide init bash)"
 alias cd="z"
 
+eval "$(oh-my-posh init bash --config ~/.poshthemes/atomic.omp.json)"
+alias lzd='lazydocker'

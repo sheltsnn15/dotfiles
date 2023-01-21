@@ -254,6 +254,7 @@ set number
 
 let no_buffers_menu=1
 colorscheme gruvbox
+set background=dark
 
 " Better command line completion 
 set wildmenu
@@ -326,12 +327,14 @@ if exists("*fugitive#statusline")
 endif
 
 " vim-airline
-let g:airline_theme = 'powerlineish'
+let g:airline_theme = 'gruvbox'
 let g:airline#extensions#branch#enabled = 1
 let g:airline#extensions#ale#enabled = 1
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tagbar#enabled = 1
 let g:airline_skip_empty_sections = 1
+hi NonText ctermbg=none
+hi Normal guibg=NONE ctermbg=NONE
 
 "*****************************************************************************
 "" Abbreviations
@@ -709,6 +712,8 @@ augroup END
 
 " jedi-vim
 let g:jedi#popup_on_dot = 0
+let g:jedi#auto_initialization = 1
+let g:jedi#completions_enabled = 1
 let g:jedi#goto_assignments_command = "<leader>g"
 let g:jedi#goto_definitions_command = "<leader>d"
 let g:jedi#documentation_command = "K"
