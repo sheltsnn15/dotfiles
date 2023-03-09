@@ -9,7 +9,7 @@
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 
-set $mod Mod1
+set $mod Mod4
 
 # Font for window titles. Will also be used by the bar unless a different font
 # is used in the bar {} block below.
@@ -29,6 +29,15 @@ exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 # NetworkManager is the most popular way to manage wireless networks on Linux,
 # and nm-applet is a desktop environment-independent system tray GUI for it.
 ## OLD >>> exec --no-startup-id nm-applet
+
+# class                 border  bground text    indicator child_border
+client.focused          #6272A4 #6272A4 #F8F8F2 #6272A4   #6272A4
+client.focused_inactive #44475A #44475A #F8F8F2 #44475A   #44475A
+client.unfocused        #282A36 #282A36 #BFBFBF #282A36   #282A36
+client.urgent           #44475A #FF5555 #F8F8F2 #FF5555   #FF5555
+client.placeholder      #282A36 #282A36 #F8F8F2 #282A36   #282A36
+
+client.background       #F8F8F2
 
 # Use pactl to adjust volume in PulseAudio.
 set $refresh_i3status killall -SIGUSR1 i3status
@@ -66,7 +75,7 @@ bindsym $mod+Shift+q kill
 # NEW >>>
 bindsym $mod+Shift+d exec --no-startup-id dmenu_run
 # run whisker menu
-bindsym $mod+d exec --no-startup-id xfce4-popup-whiskermenu
+bindsym $mod+d exec --no-startup-id rofi -show drun -show-icons
    
 # A more modern dmenu replacement is rofi:
 # bindcode $mod+40 exec "rofi -modi drun,run -show drun"
@@ -166,10 +175,9 @@ bindsym $mod+Shift+9 move container to workspace number $ws9
 bindsym $mod+Shift+0 move container to workspace number $ws10
 
 # bind program to workspace and focus to them on startup:
-assign [class="(?i)firefox"] $ws1
-assign [class="(?i)rambox"] $ws2
+assign [class="(?i)rambox"] $ws1
+assign [class="(?i)firefox"] $ws2
 assign [class="(?i)code"] $ws3
-# assign [class="Thunderbird"] $ws4
 assign [class="(?i)gimp"] $ws5
 assign [class="(?i)obsidian"] $ws6
 assign [class="(?i)celluloid"] $ws7
@@ -178,7 +186,6 @@ assign [class="(?i)celluloid"] $ws7
 for_window [class=(?i)firefox] focus
 for_window [class=(?i)rambox] focus
 for_window [class=(?i)code] focus
-# for_window [class=Thunderbird] focus
 for_window [class=(?i)gimp] focus
 for_window [class=(?i)obsidian] focus
 for_window [class=(?i)celluloid] focus
@@ -202,7 +209,7 @@ mode "Exit" {
 bindsym $mod+Shift+e mode "Exit"; exec i3-nagbar \
 	-t warning \
 	-m '❕ SESSION EXIT OPTIONS' \
-	-B '❌ [L]ogout' 	'i3-msg exit' \
+	-B '❌ [L]ogout' 	'xfce4-session-logout' \
 	-B '🌀️ [R]estart'	'systemctl -i reboot' \
 	-B '⚡️ [S]hutdown'	'systemctl -i poweroff' 
 
@@ -236,15 +243,29 @@ bindsym $mod+r mode "resize"
 
 # Start i3bar to display a workspace bar (plus the system information i3status
 # finds out, if available)
-## OLD >>> bar {
-## OLD >>>         status_command i3status
-## OLD >>> }
+set $refresh_i3status killall -SIGUSR1 i3status
+
+bar {
+        status_command i3status
+        position top
+    colors {
+            background #282A36
+            statusline #F8F8F2
+            separator  #44475A
+
+            focused_workspace  #44475A #44475A #F8F8F2
+            active_workspace   #282A36 #44475A #F8F8F2
+            inactive_workspace #282A36 #282A36 #BFBFBF
+            urgent_workspace   #FF5555 #FF5555 #F8F8F2
+            binding_mode       #FF5555 #FF5555 #F8F8F2
+      }
+}
 
 # Runs the Xfce panel and disables the window manager check
-exec --no-startup-id xfce4-panel --disable-wm-check &
+#exec --no-startup-id xfce4-panel --disable-wm-check &
 
 # Sets the floating property for the Xfce panel window.
-for_window [ class="Xfce4-panel" instance="xfce4-panel" ] floating enable
+#for_window [ class="Xfce4-panel" instance="xfce4-panel" ] floating enable
 
 # Dunst notification daemon
 exec --no-startup-id dunst &
@@ -261,8 +282,8 @@ exec --no-startup-id /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agen
 for_window [class=".*"] border pixel 2 #*
 gaps inner 6
 gaps outer 3
-#gaps horizontal 2
-
+smart_gaps on
+smart_borders on
 #####################
 # Custom Autostarts #
 #####################
@@ -270,7 +291,5 @@ gaps outer 3
 # picom compositor with my settings
 exec --no-startup-id picom --config ~/.config/picom/picom.conf
 # background image
-exec --no-startup-id feh --bg-fill /home/shelton/Pictures/Wallpapers/wallhaven-zyxvqy.jpg
-
-
+exec --no-startup-id feh --bg-fill ~/Pictures/Wallpapers/wallhaven-zyxvqy.jpg
 
