@@ -12,6 +12,7 @@ set mouse=a
 set tabstop=4
 set shiftwidth=4
 set expandtab
+set smartindent
 
 " Enable line wrapping
 set wrap
@@ -24,6 +25,9 @@ set incsearch
 
 " Highlight search results
 set hlsearch
+
+set ignorecase
+set smartcase
 
 " Make backspace key more powerful
 set backspace=indent,eol,start
@@ -50,4 +54,4 @@ set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [POS=%04l,%04v]\ [LEN=%L]
 set cursorline
 
 " Set the colorscheme (if you have one installed)
-" colorscheme your_colorscheme_name
+colorscheme ron
