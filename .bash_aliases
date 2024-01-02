@@ -1,5 +1,5 @@
-alias ls="exa --icons --group-directories-first"
-alias ll="exa --icons --group-directories-first -alh"
+alias ls="exa  --group-directories-first"
+alias ll="exa  --group-directories-first -alh"
 alias tree="exa --tree"
 
 if command -v bat >/dev/null; then
@@ -11,6 +11,7 @@ fi
 eval "$(zoxide init bash)"
 alias cd="z"
 
+alias tmux="tmux -u"
 alias lzd='lazydocker'
 
 # enable color support of ls and also add handy aliases
@@ -20,5 +21,33 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
+alias kubectl="minikube kubectl --"
+
+_fzf_comprun() {
+  local command=$1
+  shift
+
+  case "$command" in
+    cd)           fzf "$@" --preview 'tree -C {} | head -200' ;;
+    *)            fzf "$@" ;;
+  esac
+}
+
+# ============================================================
+# SECTION: Glow, .md file viewer
+# ============================================================
+
+viewmd() {
+  if [[ -z "$1" ]]; then
+    echo "Usage: viewmd <filename.md>"
+  else
+    glow -s dark "$1" | less -r
+  fi
+}
+
+export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --info=inline --border --margin=1 --padding=1"
+
+
 # colored GCC warnings and errors
 export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+

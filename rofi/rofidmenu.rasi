@@ -3,9 +3,9 @@
  * Maintainer: joekamprad [joekamprad //a_t// endeavouros.com]
  *******************************************************/
 configuration {
-    font:                "Noto Sans Regular 10";
+    font:                "Noto Sans Regular 12";
     show-icons:          true;
-    icon-theme:          "Qogir";
+    icon-theme:          "Papirus";
     display-drun:        "Apps";
     drun-display-format: "{name}";
     scroll-method:       0;

@@ -1,57 +1,127 @@
-" Enable syntax highlighting
-syntax on
+" BASIC SETUP
+set nocompatible              " Use Vim's own defaults instead of emulating vi
+syntax enable                 " Enable syntax highlighting
+filetype plugin on            " Enable filetype detection and load filetype plugins
 
-" Show line numbers
-set number
-set relativenumber
+" FINDING FILES
+set path+=**                  " Search in subdirectories for files
+set wildmenu                  " Improve command line completion with a navigable menu
 
-" Enable mouse support
-set mouse=a
+" TAG JUMPING
+command! MakeTags !ctags -R . " Custom command to create tags for source code navigation
+                              " (ctags needs to be installed separately)
 
-" Set tabs to have 4 spaces
-set tabstop=4
-set shiftwidth=4
-set expandtab
-set smartindent
+" AUTOCOMPLETE
+" The following settings configure different types of autocompletion:
+" - ^x^n: Autocomplete from current file
+" - ^x^f: Autocomplete filenames
+" - ^x^]: Autocomplete tags
+" - ^n: Autocomplete from various sources
 
-" Enable line wrapping
-set wrap
+" FILE BROWSING
+" These settings tweak Netrw, Vim's built-in file explorer:
+let g:netrw_banner=0          " Disable the banner at the top of Netrw
+let g:netrw_browse_split=4    " Open files in the previous window
+let g:netrw_altv=1            " Open new splits to the right
+let g:netrw_liststyle=3       " Use a tree-style listing
+" The next two lines configure hiding files in Netrw:
+let g:netrw_list_hide=netrw_gitignore#Hide()
+let g:netrw_list_hide.=',\(^\|\s\s\)\zs\.\S\+'
 
-" Show matching brackets
-set showmatch
+" SNIPPETS
+" This is a simple snippet example. It reads an HTML template and moves the cursor:
+nnoremap ,html :-1read $HOME/.vim/.skeleton.html<CR>3jwf>a
 
-" Enable incremental search
-set incsearch
+" BUILD INTEGRATION
+" These settings are for integrating a build system (RSpec in this case):
+set makeprg=bundle\ exec\ rspec\ -f\ QuickfixFormatter " Set the make program to RSpec
+" The following commands are used to navigate RSpec errors:
+" - :make: Run the make program
+" - :cl: List errors
+" - :cc#: Jump to a specific error
+" - :cn and :cp: Navigate through errors
 
-" Highlight search results
-set hlsearch
+set number            " Show line numbers
+set relativenumber    " Show relative line numbers
+set showcmd           " Show command in bottom bar
+set cursorline        " Highlight current line
+set wrap              " Enable line wrap
+set scrolloff=10      " Keep 10 lines visible when scrolling
+set ignorecase        " Case insensitive searching
+set smartcase         " Case sensitive if uppercase is used
+set incsearch         " Show search matches as you type
+set hlsearch          " Highlight search results
+set autoindent        " Copy indent from current line on new line
+set smartindent       " Smart autoindenting for new lines
+set expandtab         " Convert tabs to spaces
+set tabstop=4         " Set tab width to 4 spaces
+set shiftwidth=4      " Set indent width to 4 spaces
+set softtabstop=4     " Set soft tab width to 4 spaces
+set backspace=indent,eol,start  " Make backspace key more powerful
 
-set ignorecase
-set smartcase
+nnoremap <C-j> :bnext<CR>       " Ctrl+j to go to next buffer
+nnoremap <C-k> :bprevious<CR>   " Ctrl+k to go to previous buffer
 
-" Make backspace key more powerful
-set backspace=indent,eol,start
+nnoremap <C-h> <C-w>h           " Ctrl+h to move left in splits
+nnoremap <C-j> <C-w>j           " Ctrl+j to move down in splits
+nnoremap <C-k> <C-w>k           " Ctrl+k to move up in splits
+nnoremap <C-l> <C-w>l           " Ctrl+l to move right in splits
 
-" Enable file type detection
-filetype plugin indent on
+set undofile          " Save undos after file closes
+set undodir=~/.vim/undodir  " Set directory for undo files
 
-" Set default encoding to UTF-8
-set encoding=utf-8
+set background=dark   " Set background to dark (use 'light' for light background)
+colorscheme onedark " Set default color scheme (change as per your preference)
+hi Normal guibg=NONE ctermbg=NONE
 
-" Use spaces instead of tabs
-set expandtab
+set laststatus=2      " Always display the status line
 
-" Improve command line completion
-set wildmenu
+set noswapfile        " Disable swap file creation
 
-" Remember last position in file
-au BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
 
-" Set a nicer status line
-set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [POS=%04l,%04v]\ [LEN=%L]
 
-" Enable line highlighting
-set cursorline
+" Setting the Leader Key
+let mapleader = " "
 
-" Set the colorscheme (if you have one installed)
-colorscheme ron
+" File explorer
+nnoremap <leader>pv :Ex<CR>
+
+" Move lines up and down in visual mode
+vnoremap J :m '>+1<CR>gv=gv
+vnoremap K :m '<-2<CR>gv=gv
+
+" Join lines without moving cursor
+nnoremap J mzJ`z
+
+" Center screen on navigation
+nnoremap <C-d> <C-d>zz
+nnoremap <C-u> <C-u>zz
+nnoremap n nzzzv
+nnoremap N Nzzzv
+
+" Clipboard integration
+vnoremap <leader>y :w !xclip -i -sel c<CR><CR>
+nnoremap <leader>Y :.w !xclip -i -sel c<CR><CR>
+nnoremap <leader>d :w !xclip -i -sel c<CR><CR>
+
+" Cancel operation in insert mode
+inoremap <C-c> <Esc>
+
+" Disable Q in normal mode
+nnoremap Q <nop>
+
+" Quickfix and location list navigation
+nnoremap <C-k> :cnext<CR>zz
+nnoremap <C-j> :cprev<CR>zz
+nnoremap <leader>k :lnext<CR>zz
+nnoremap <leader>j :lprev<CR>zz
+
+" Search and replace helper
+nnoremap <leader>s :%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>
+
+" Change file permissions
+nnoremap <leader>x :!chmod +x %<CR>
+
+" Edit specific configuration file
+nnoremap <leader>vpp :e ~/.vimrc<CR>
+
