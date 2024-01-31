@@ -11,6 +11,7 @@ fi
 eval "$(zoxide init bash)"
 alias cd="z"
 
+alias nano="micro"
 alias tmux="tmux -u"
 alias lzd='lazydocker'
 
@@ -47,7 +48,10 @@ viewmd() {
 
 export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --info=inline --border --margin=1 --padding=1"
 
+source ~/.local/share/fzf/fzf-tab-completion/bash/fzf-bash-completion.sh
+bind -x '"\t": fzf_bash_completion'
 
 # colored GCC warnings and errors
 export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
+export PATH="/home/shelton/.local/share/fzf/git-fuzzy/bin:$PATH"

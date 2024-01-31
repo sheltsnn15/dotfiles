@@ -71,7 +71,6 @@ set undofile          " Save undos after file closes
 set undodir=~/.vim/undodir  " Set directory for undo files
 
 set background=dark   " Set background to dark (use 'light' for light background)
-colorscheme onedark " Set default color scheme (change as per your preference)
 hi Normal guibg=NONE ctermbg=NONE
 
 set laststatus=2      " Always display the status line
