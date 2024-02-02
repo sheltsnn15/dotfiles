@@ -55,3 +55,9 @@ bind -x '"\t": fzf_bash_completion'
 export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
 export PATH="/home/shelton/.local/share/fzf/git-fuzzy/bin:$PATH"
+
+# View docx, csv, doc, xlsx from terminal
+alias viewxlsx="xlsx2csv \$1 | lynx --stdin"
+alias viewdocx="pandoc \$1 -t plain | lynx --stdin"
+alias viewtext="cat \$1 | lynx --stdin"
+
