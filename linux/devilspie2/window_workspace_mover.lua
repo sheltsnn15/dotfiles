@@ -1,7 +1,7 @@
 -- Function to move and focus window based on application name
 function assign_to_workspace(app_name_pattern, workspace)
 	local app_name_lower = string.lower(get_application_name())
-	if string.match(app_name_lower, app_name_pattern:lower()) then
+	if string.find(app_name_lower, app_name_pattern:lower(), 1, true) then
 		set_window_workspace(workspace)
 	end
 end
@@ -17,12 +17,12 @@ assign_to_workspace("obsidian", 3)
 assign_to_workspace("kitty", 3)
 assign_to_workspace("draw.io", 4)
 assign_to_workspace("postman", 4)
+assign_to_workspace("obs", 4)
 assign_to_workspace("gimp", 4)
-assign_to_workspace("firefox", 5)
 assign_to_workspace("google-chome", 5)
-assign_to_workspace("Gnome-terminal", 6)
+assign_to_workspace("org.wezfurlong.wezterm", 6)
 assign_to_workspace("code", 6)
 assign_to_workspace("bitwarden", 7)
-assign_to_workspace("spotify", 7)
-assign_to_workspace("remmina", 8)
+assign_to_workspace("org.remmina.Remmina", 8)
 assign_to_workspace("vmware", 8)
+assign_to_workspace("gnome-control-center", 9)
