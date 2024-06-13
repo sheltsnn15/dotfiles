@@ -10,165 +10,127 @@ Write-Host "${ansiRed}Error: Something went wrong.${ansiReset}"
 Write-Host "${ansiGreen}Success: Operation completed.${ansiReset}"
 Write-Host "${ansiYellow}Warning: Proceed with caution.${ansiReset}"
 
-# Enhance the built-in history feature
-function gh {
-    if ($args.Count -eq 0) {
-        Get-History
+# Check if Remove-Alias cmdlet is available
+if (Get-Command -Name Remove-Alias -ErrorAction SilentlyContinue) {
+    $commands = "awk", "emacs", "grep", "head", "less", "ls", "man", "sed", "seq", "ssh", "tail", "vim"
+
+    foreach ($command in $commands) {
+        Remove-Alias $command -Force -ErrorAction Ignore
+    }
+} else {
+    Write-Host "${ansiYellow}Remove-Alias cmdlet not available. Skipping alias removal.${ansiReset}"
+}
+
+# Define the commands to import
+$commands = "awk", "emacs", "grep", "head", "less", "ls", "man", "sed", "seq", "ssh", "tail", "vim"
+
+# Helper function to escape characters in arguments passed to WSL that would otherwise be misinterpreted
+function global:Format-WslArgument([string]$arg, [bool]$interactive) {
+    if ($interactive -and $arg.Contains(" ")) {
+        return "'$arg'"
     } else {
-        Get-History | Where-Object { $_.CommandLine -like "*$args*" }
+        return ($arg -replace " ", "\ ") -replace "([()|])", ('\$1', '`$1')[$interactive]
     }
 }
 
-# Custom 'ls' function to mimic Bash's 'ls' command with basic colorization
-function ls {
-    Get-ChildItem @args | ForEach-Object {
-        if ($_.PSIsContainer) {
-            Write-Host "${ansiBlue}$($_.Name)${ansiReset}"
-        } else {
-            Write-Host $_.Name
+# Register a function for each command
+$commands | ForEach-Object { Invoke-Expression @"
+function global:$_() {
+    for (`$i = 0; `$i -lt `$args.Count; `$i++) {
+        if (Split-Path `$args[`$i] -IsAbsolute -ErrorAction Ignore) {
+            `$args[`$i] = Format-WslArgument (wsl.exe wslpath (`$args[`$i] -replace '\\', '/'))
+        } elseif (Test-Path `$args[`$i] -ErrorAction Ignore) {
+            `$args[`$i] = Format-WslArgument (`$args[`$i] -replace '\\', '/')
         }
     }
-}
-Set-Alias ll ls -Option AllScope
 
-# Custom 'cd' override to include 'cd -' functionality and support for '~'
-function cd {
-    param(
-        [string]$path = $HOME
-    )
-    
-    if ($path -eq '~') {
-        $path = $HOME
-    } elseif ($path -eq '-') {
-        $path = $env:OLDPWD
-    }
-    
-    $env:OLDPWD = Get-Location
-    Set-Location $path
-}
-
-# 'grep' functionality using Select-String
-function grep {
-    Select-String @args
-}
-Set-Alias grep Select-String -Option AllScope
-
-# Exit PowerShell session with Ctrl+D if PSReadLine module is available
-if ($null -ne (Get-Module -ListAvailable PSReadLine)) {
-    Set-PSReadLineKeyHandler -Key "Ctrl+d" -Function DeleteCharOrExit
-}
-
-# Enhance tab completion to be more Bash-like
-Set-PSReadLineKeyHandler -Key Tab -Function Complete
-
-# Custom prompt
-function prompt {
-    $path = $ExecutionContext.SessionState.Path.CurrentLocation.Path.Replace($HOME, '~')
-    "$path$('>' * ($nestedPromptLevel + 1)) "
-}
-
-# Alias for common commands
-Set-Alias cat Get-Content -Option AllScope
-Set-Alias mkdir New-Item -Option AllScope
-Set-Alias rm Remove-Item -Option AllScope
-Set-Alias touch touch -Option AllScope
-
-# Custom 'cp' function with error handling
-function cp {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$source,
-        [Parameter(Mandatory = $true)]
-        [string]$destination
-    )
-    
-    try {
-        Copy-Item -Path $source -Destination $destination -ErrorAction Stop
-    }
-    catch {
-        Write-Host "${ansiRed}Error copying file: $_${ansiReset}"
-    }
-}
-
-# Custom 'mv' function
-function mv {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$source,
-        [Parameter(Mandatory = $true)]
-        [string]$destination
-    )
-    
-    Move-Item -Path $source -Destination $destination
-}
-
-# Custom 'touch' function to mimic Bash's 'touch' command
-function touch {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$filename
-    )
-    
-    if (-not (Test-Path $filename)) {
-        New-Item -ItemType File -Path $filename -Force
+    `$defaultArgs = ((`$WslDefaultParameterValues.$_ -split ' '), "")[`$WslDefaultParameterValues.Disabled -eq `$true]
+    if (`$input.MoveNext()) {
+        `$input.Reset()
+        `$input | wsl.exe $_ `$defaultArgs (`$args -split ' ')
     } else {
-        (Get-Item $filename).LastWriteTime = Get-Date
+        wsl.exe $_ `$defaultArgs (`$args -split ' ')
+    }
+}
+"@
+}
+
+# Argument Completion
+Register-ArgumentCompleter -CommandName $commands -ScriptBlock {
+    param($wordToComplete, $commandAst, $cursorPosition)
+
+    $F = switch ($commandAst.CommandElements[0].Value) {
+        {$_ -in "awk", "grep", "head", "less", "ls", "sed", "seq", "tail"} { "_longopt" }
+        "man" { "_man" }
+        "ssh" { "_ssh" }
+        Default { "_minimal" }
+    }
+
+    $COMP_LINE = "`"$commandAst`""
+    $COMP_WORDS = "('$($commandAst.CommandElements.Extent.Text -join "' '")')" -replace "''", "'"
+    for ($i = 1; $i -lt $commandAst.CommandElements.Count; $i++) {
+        $extent = $commandAst.CommandElements[$i].Extent
+        if ($cursorPosition -lt $extent.EndColumnNumber) {
+            $previousWord = $commandAst.CommandElements[$i - 1].Extent.Text
+            $COMP_CWORD = $i
+            break
+        } elseif ($cursorPosition -eq $extent.EndColumnNumber) {
+            $previousWord = $extent.Text
+            $COMP_CWORD = $i + 1
+            break
+        } elseif ($cursorPosition -lt $extent.StartColumnNumber) {
+            $previousWord = $commandAst.CommandElements[$i - 1].Extent.Text
+            $COMP_CWORD = $i
+            break
+        } elseif ($i -eq $commandAst.CommandElements.Count - 1 -and $cursorPosition -gt $extent.EndColumnNumber) {
+            $previousWord = $extent.Text
+            $COMP_CWORD = $i + 1
+            break
+        }
+    }
+
+    $currentExtent = $commandAst.CommandElements[$COMP_CWORD].Extent
+    $previousExtent = $commandAst.CommandElements[$COMP_CWORD - 1].Extent
+    if ($currentExtent.Text -like "/*" -and $currentExtent.StartColumnNumber -eq $previousExtent.EndColumnNumber) {
+        $COMP_LINE = $COMP_LINE -replace "$($previousExtent.Text)$($currentExtent.Text)", $wordToComplete
+        $COMP_WORDS = $COMP_WORDS -replace "$($previousExtent.Text) '$($currentExtent.Text)'", $wordToComplete
+        $previousWord = $commandAst.CommandElements[$COMP_CWORD - 2].Extent.Text
+        $COMP_CWORD -= 1
+    }
+
+    $command = $commandAst.CommandElements[0].Value
+    $bashCompletion = ". /usr/share/bash-completion/bash_completion 2> /dev/null"
+    $commandCompletion = ". /usr/share/bash-completion/completions/$command 2> /dev/null"
+    $COMPINPUT = "COMP_LINE=$COMP_LINE; COMP_WORDS=$COMP_WORDS; COMP_CWORD=$COMP_CWORD; COMP_POINT=$cursorPosition"
+    $COMPGEN = "bind `"set completion-ignore-case on`" 2> /dev/null; $F `"$command`" `"$wordToComplete`" `"$previousWord`" 2> /dev/null"
+    $COMPREPLY = "IFS=`$'\n'; echo `"`${COMPREPLY[*]}`""
+    $commandLine = "$bashCompletion; $commandCompletion; $COMPINPUT; $COMPGEN; $COMPREPLY" -split ' '
+
+    $previousCompletionText = ""
+    (wsl.exe $commandLine) -split '\n' |
+    Sort-Object -Unique -CaseSensitive |
+    ForEach-Object {
+        if ($wordToComplete -match "(.*=).*") {
+            $completionText = Format-WslArgument ($Matches[1] + $_) $true
+            $listItemText = $_
+        } else {
+            $completionText = Format-WslArgument $_ $true
+            $listItemText = $completionText
+        }
+
+        if ($completionText -eq $previousCompletionText) {
+            $listItemText += ' '
+        }
+
+        $previousCompletionText = $completionText
+        [System.Management.Automation.CompletionResult]::new($completionText, $listItemText, 'ParameterName', $completionText)
     }
 }
 
-# Environment Variables Management
-function setenv {
-    param(
-        [string]$name,
-        [string]$value
-    )
-    [System.Environment]::SetEnvironmentVariable($name, $value, [System.EnvironmentVariableTarget]::User)
-}
+# Hash table for default parameter values
+$global:WslDefaultParameterValues = @{}
 
-function unsetenv {
-    param([string]$name)
-    [System.Environment]::SetEnvironmentVariable($name, $null, [System.EnvironmentVariableTarget]::User)
-}
-
-function getenv {
-    Get-ChildItem env:
-}
-
-# Networking command aliases
-Set-Alias ifconfig Get-NetIPAddress -Option AllScope
-Set-Alias ping Test-Connection -Option AllScope
-Set-Alias netstat Get-NetTCPConnection -Option AllScope
-
-# Functionality to work with archives
-function tar {
-    param(
-        [string]$action,
-        [string]$archivePath,
-        [string]$sourcePath
-    )
-    
-    if ($action -eq 'c') {
-        Compress-Archive -Path $sourcePath -DestinationPath $archivePath
-    } elseif ($action -eq 'x') {
-        Expand-Archive -Path $archivePath -DestinationPath $sourcePath
-    }
-}
-
-# Interactive Help or Documentation
-function custom-help {
-    param([string]$command)
-
-    $helpText = @{
-        'cp' = 'Copies a file from source to destination. Usage: cp <source> <destination>'
-        'mv' = 'Moves a file from source to destination. Usage: mv <source> <destination>'
-        'touch' = 'Creates a new file or updates the timestamp of an existing file. Usage: touch <filename>'
-        # Add more help texts for other functions
-    }
-
-    if ($helpText.ContainsKey($command)) {
-        Write-Host $helpText[$command]
-    } else {
-        Write-Host "No custom help available for $command"
-    }
-}
-
+# Example default parameters
+$WslDefaultParameterValues["grep"] = "-E"
+$WslDefaultParameterValues["less"] = "-i"
+$WslDefaultParameterValues["ls"] = "-AFh --group-directories-first"
