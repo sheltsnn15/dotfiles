@@ -1,3 +1,7 @@
+alias ls="exa  --group-directories-first"
+alias ll="exa  --group-directories-first -alh"
+alias tree="exa --tree"
+
 if command -v bat >/dev/null; then
 	alias cat="bat"
 elif command -v batcat >/dev/null; then
