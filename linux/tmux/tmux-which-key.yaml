@@ -1,0 +1,27 @@
+main:
+  description: "Main prefix bindings"
+  items:
+    - key: |
+      command: split-window -h
+      description: "Split window horizontally"
+    - key: -
+      command: split-window -v
+      description: "Split window vertically"
+    - key: r
+      command: source-file ~/.tmux.conf
+      description: "Reload config file"
+    - key: M-Left
+      command: select-pane -L
+      description: "Switch pane left"
+    - key: M-Right
+      command: select-pane -R
+      description: "Switch pane right"
+    - key: M-Up
+      command: select-pane -U
+      description: "Switch pane up"
+    - key: M-Down
+      command: select-pane -D
+      description: "Switch pane down"
+    - key: i
+      command: run-shell "tmux neww ~/.config/tmux/tmux-cht.sh"
+      description: "Open custom command in new window"
