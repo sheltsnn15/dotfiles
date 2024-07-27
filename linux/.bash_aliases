@@ -40,3 +40,19 @@ complete -o default -F __start_kubectl k
 # Other configurations
 export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 export PATH="/home/shelton/.local/share/fzf/git-fuzzy/bin:$PATH"
+# Command to source ESP-IDF environment
+setup_idf() {
+    if [ -f "/home/shelton/Documents/Packages/esp-idf/export.sh" ]; then
+        . /home/shelton/Documents/Packages/esp-idf/export.sh
+
+        # Activate the ESP-IDF Python environment
+        if [ -d "/home/shelton/.espressif/python_env/idf5.4_py3.12_env/bin" ]; then
+            source /home/shelton/.espressif/python_env/idf5.4_py3.12_env/bin/activate
+        fi
+
+        echo "ESP-IDF environment has been set up."
+    else
+        echo "ESP-IDF setup script not found!"
+    fi
+}
+
