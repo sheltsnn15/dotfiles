@@ -12,7 +12,7 @@ Write-Host "${ansiYellow}Warning: Proceed with caution.${ansiReset}"
 
 # Check if Remove-Alias cmdlet is available
 if (Get-Command -Name Remove-Alias -ErrorAction SilentlyContinue) {
-    $commands = "awk", "emacs", "grep", "head", "less", "ls", "man", "sed", "seq", "ssh", "tail", "vim"
+    $commands = "awk", "nvim", "grep", "head", "less", "ls", "man", "sed", "seq", "ssh", "tail", "vim"
 
     foreach ($command in $commands) {
         Remove-Alias $command -Force -ErrorAction Ignore
@@ -22,7 +22,7 @@ if (Get-Command -Name Remove-Alias -ErrorAction SilentlyContinue) {
 }
 
 # Define the commands to import
-$commands = "awk", "emacs", "grep", "head", "less", "ls", "man", "sed", "seq", "ssh", "tail", "vim"
+$commands = "awk", "nvim", "grep", "head", "less", "ls", "man", "sed", "seq", "ssh", "tail", "vim"
 
 # Helper function to escape characters in arguments passed to WSL that would otherwise be misinterpreted
 function global:Format-WslArgument([string]$arg, [bool]$interactive) {
@@ -134,3 +134,5 @@ $global:WslDefaultParameterValues = @{}
 $WslDefaultParameterValues["grep"] = "-E"
 $WslDefaultParameterValues["less"] = "-i"
 $WslDefaultParameterValues["ls"] = "-AFh --group-directories-first"
+
+Invoke-Expression (&starship init powershell)
