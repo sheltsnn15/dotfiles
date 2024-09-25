@@ -25,39 +25,54 @@ install_essentials() {
     done
 }
 
-# Function to install Go
-install_go() {
+# Function to install Go using goenv
+install_goenv() {
+    if [ ! -d "$HOME/.goenv" ]; then
+        echo "Installing goenv..."
+        git clone https://github.com/go-nv/goenv.git ~/.goenv
+
+        echo 'export GOENV_ROOT="$HOME/.goenv"' >>~/.bashrc
+        echo 'export PATH="$GOENV_ROOT/bin:$PATH"' >>~/.bashrc
+        echo 'eval "$(goenv init -)"' >>~/.bashrc
+
+        # Add GOPATH and GOROOT to .bashrc
+        echo 'export GOROOT=$(goenv root)/versions/$(goenv version)/go' >>~/.bashrc
+        echo 'export GOPATH="$HOME/go"' >>~/.bashrc
+        echo 'export PATH="$GOROOT/bin:$PATH"' >>~/.bashrc
+        echo 'export PATH="$GOPATH/bin:$PATH"' >>~/.bashrc
+
+        # Apply changes to current shell session
+        source ~/.bashrc
+    else
+        echo "goenv is already installed."
+    fi
+}
+
+# Function to install Go using goenv
+install_go_version() {
     if ! command -v go &>/dev/null; then
         echo "Installing Go..."
-        wget https://go.dev/dl/go1.20.6.linux-amd64.tar.gz -O go.tar.gz
-        sudo tar -C /usr/local -xzf go.tar.gz
-        rm go.tar.gz
-        echo 'export PATH=$PATH:/usr/local/go/bin' >>~/.bashrc
+        # Ensure goenv is initialized
+        source ~/.bashrc
     else
         echo "Go is already installed."
     fi
 }
 
-# Function to install GVM
-install_gvm() {
-    if [ ! -d "$HOME/.gvm" ]; then
-        echo "Installing GVM..."
-        bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
-        echo 'source ~/.gvm/scripts/gvm' >>~/.bashrc
-    else
-        echo "GVM is already installed."
-    fi
-}
+# Function to install Node.js using n
+install_node() {
+    if ! command -v node &>/dev/null; then
+        echo "Installing Node.js..."
+        curl -L https://bit.ly/n-install | bash
 
-# Function to install NVM and Node.js LTS
-install_nvm_node() {
-    if [ ! -d "$HOME/.nvm" ]; then
-        echo "Installing NVM and Node.js LTS..."
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
-        source ~/.nvm/nvm.sh
-        nvm install --lts
+        # Add n to PATH in .bashrc
+        echo 'export N_PREFIX="$HOME/n"' >>~/.bashrc
+        echo 'export PATH="$N_PREFIX/bin:$PATH"' >>~/.bashrc
+
+        # Apply changes to current shell session
+        source ~/.bashrc
     else
-        echo "NVM is already installed."
+        echo "Node.js is already installed."
     fi
 }
 
@@ -72,16 +87,20 @@ install_rust() {
     fi
 }
 
-# Function to install Miniconda
-install_miniconda() {
-    if [ ! -d "$HOME/miniconda" ]; then
-        echo "Installing Miniconda..."
-        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-        bash miniconda.sh -b -p $HOME/miniconda
-        rm miniconda.sh
-        echo 'export PATH=$HOME/miniconda/bin:$PATH' >>~/.bashrc
+# Function to install pyenv
+install_pyenv() {
+    if [ ! -d "$HOME/.pyenv" ]; then
+        echo "Installing pyenv..."
+        curl https://pyenv.run | bash
+
+        echo 'export PYENV_ROOT="$HOME/.pyenv"' >>~/.bashrc
+        echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >>~/.bashrc
+        echo 'eval "$(pyenv init -)"' >>~/.bashrc
+
+        # Apply changes to current shell session
+        source ~/.bashrc
     else
-        echo "Miniconda is already installed."
+        echo "pyenv is already installed."
     fi
 }
 
@@ -90,7 +109,6 @@ install_sdkman() {
     if [ ! -d "$HOME/.sdkman" ]; then
         echo "Installing SDKMAN..."
         curl -s "https://get.sdkman.io" | bash
-        echo 'source "$HOME/.sdkman/bin/sdkman-init.sh"' >>~/.bashrc
     else
         echo "SDKMAN is already installed."
     fi
@@ -100,7 +118,7 @@ install_sdkman() {
 install_neovim() {
     if ! command -v nvim &>/dev/null; then
         echo "Cloning Neovim repository..."
-        git clone https://github.com/neovim/neovim.git --depth=1
+        git clone https://github.com/neovim/neovim.git
         mkdir -p ~/Documents/Packages/
         mv neovim ~/Documents/Packages/
 
@@ -150,7 +168,6 @@ install_fzf_tab_completion() {
     if [ ! -d "$FZF_TAB_DIR/fzf-tab-completion" ]; then
         echo "Installing fzf-tab-completion..."
         git clone https://github.com/lincheney/fzf-tab-completion.git "$FZF_TAB_DIR/fzf-tab-completion"
-        echo "source $FZF_TAB_DIR/fzf-tab-completion/bash" >>~/.bashrc
     else
         echo "fzf-tab-completion is already installed."
     fi
@@ -191,24 +208,26 @@ install_lazydocker() {
 }
 
 # Function to install Docker Engine
+# Function to install Docker Engine
 install_docker() {
     if ! command -v docker &>/dev/null; then
         echo "Installing Docker..."
-        # Set up Docker's apt repository
-        sudo apt-get update
-        sudo install -m 0755 -d /etc/apt/keyrings
-        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-        sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-        # Add the repository to Apt sources
-        echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |
-            sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-        sudo apt-get update
+        # Step 1: Install Prerequisites
+        sudo apt update
+        sudo apt install -y apt-transport-https ca-certificates curl gnupg
 
-        # Install Docker packages
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        # Step 2: Add Docker’s Official GPG Key
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker.gpg
+
+        # Step 3: Add Docker Repo to Linux Mint
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+        # Refresh package list
+        sudo apt update
+
+        # Step 4: Install Docker
+        sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         sudo usermod -aG docker $USER
     else
         echo "Docker is already installed."
@@ -217,11 +236,11 @@ install_docker() {
 
 # Run all the functions
 install_essentials
-install_go
-install_gvm
-install_nvm_node
+install_goenv
+install_go_version
+install_node
 install_rust
-install_miniconda
+install_pyenv
 install_sdkman
 install_neovim
 install_makedeb
