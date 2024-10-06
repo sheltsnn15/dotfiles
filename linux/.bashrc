@@ -9,7 +9,7 @@ export OSH='/home/shelton/.oh-my-bash'
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-bash is loaded.
-OSH_THEME="bobby-python"
+OSH_THEME="vscode"
 
 # If you set OSH_THEME to "random", you can ignore themes you don't like.
 # OMB_THEME_RANDOM_IGNORED=("powerbash10k" "wanelo")
@@ -42,7 +42,7 @@ COMPLETION_WAITING_DOTS="true"
 # Uncomment the following line if you want to disable marking untracked files
 # under VCS as dirty. This makes repository status check for large repositories
 # much, much faster.
-DISABLE_UNTRACKED_FILES_DIRTY="true"
+# DISABLE_UNTRACKED_FILES_DIRTY="true"
 
 # Uncomment the following line if you don't want the repository to be considered dirty
 # if there are untracked files.
@@ -66,7 +66,7 @@ DISABLE_UNTRACKED_FILES_DIRTY="true"
 
 # Uncomment the following line if you do not want OMB to overwrite the existing
 # aliases by the default OMB aliases defined in lib/*.sh
-OMB_DEFAULT_ALIASES="check"
+# OMB_DEFAULT_ALIASES="check"
 
 # Would you like to use another custom folder than $OSH/custom?
 # OSH_CUSTOM=/path/to/new-custom-folder
@@ -76,7 +76,7 @@ OMB_DEFAULT_ALIASES="check"
 OMB_USE_SUDO=true
 
 # To enable/disable display of Python virtualenv and condaenv
-OMB_PROMPT_SHOW_PYTHON_VENV=true # enable
+# OMB_PROMPT_SHOW_PYTHON_VENV=true  # enable
 # OMB_PROMPT_SHOW_PYTHON_VENV=false # disable
 
 # Which completions would you like to load? (completions can be found in ~/.oh-my-bash/completions/*)
@@ -84,9 +84,24 @@ OMB_PROMPT_SHOW_PYTHON_VENV=true # enable
 # Example format: completions=(ssh git bundler gem pip pip3)
 # Add wisely, as too many completions slow down shell startup.
 completions=(
+	gh
 	git
-	composer
+	pip
+	pip3
+	go
+	gradle
+	sdkman
 	ssh
+	system
+	defaults
+	dirs
+	django
+	docker-compose
+	tmux
+	makefile
+	docker
+	maven
+	npm
 )
 
 # Which aliases would you like to load? (aliases can be found in ~/.oh-my-bash/aliases/*)
@@ -94,7 +109,15 @@ completions=(
 # Example format: aliases=(vagrant composer git-avh)
 # Add wisely, as too many aliases slow down shell startup.
 aliases=(
+	cargo
+	docker
+	misc
+	docker
+	package-manager
+	chmod
 	general
+	debian
+	ls
 )
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-bash/plugins/*)
@@ -102,9 +125,21 @@ aliases=(
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-	git
+	ansible
 	bashmarks
+	git
+	npm
+	dotnet
+	goenv
+	nvm
+	sdkman
+	xterm
+	golang
+	progress
+	sudo
 	zoxide
+	bash-preexec
+	pyenv
 )
 
 # Which plugins would you like to conditionally load? (plugins can be found in ~/.oh-my-bash/plugins/*)
@@ -141,31 +176,72 @@ fi
 # For a full list of active aliases, run `alias`.
 #
 # Example aliases
+#
+#
+#
 alias bashconfig="nvim ~/.bashrc"
 alias ohmybash="nvim ~/.oh-my-bash"
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/shelton/miniconda3/bin/conda' 'shell.bash' 'hook' 2>/dev/null)"
-if [ $? -eq 0 ]; then
-	eval "$__conda_setup"
-else
-	if [ -f "/home/shelton/miniconda3/etc/profile.d/conda.sh" ]; then
-		. "/home/shelton/miniconda3/etc/profile.d/conda.sh"
-	else
-		export PATH="/home/shelton/miniconda3/bin:$PATH"
-	fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+# FZF Configuration
+_fzf_comprun() {
+	local command=$1
+	shift
+	case "$command" in
+	cd) fzf "$@" --preview 'tree -C {} | head -200' ;;
+	*) fzf "$@" ;;
+	esac
+}
+export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --info=inline --border --margin=1 --padding=1"
+source ~/.local/share/fzf/fzf-tab-completion/bash/fzf-bash-completion.sh
+bind -x '"\t": fzf_bash_completion'
 
+# Other Custom Aliases
+alias viewxlsx="xlsx2csv \$1 | lynx --stdin"
+alias viewdocx="pandoc \$1 -t plain | lynx --stdin"
+alias viewtext="cat \$1 | lynx --stdin"
+
+if command -v bat >/dev/null; then
+	alias cat="bat"
+elif command -v batcat >/dev/null; then
+	alias cat="batcat"
+fi
+
+alias tmux="tmux -u"
+
+# Enable color support for grep
+if [ -x /usr/bin/dircolors ]; then
+	alias grep='grep --color=auto'
+	alias fgrep='fgrep --color=auto'
+	alias egrep='egrep --color=auto'
+fi
+
+export PATH=$PATH:$HOME/.local/bin
+
+# Other configurations
+export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# N node version manager
+export N_PREFIX="$HOME/n"
+[[ :$PATH: == *":$N_PREFIX/bin:"* ]] || PATH+=":$N_PREFIX/bin" # Added by n-install (see http://git.io/n-install-repo).
+
+# Goenv setup
+export GOENV_ROOT="$HOME/.goenv"
+export PATH="$GOENV_ROOT/bin:$PATH"
+eval "$(goenv init -)"
+export PATH="$GOROOT/bin:$PATH"
+export PATH="$PATH:$GOPATH/bin"
+
+# Pyenv setup
+export PYENV_ROOT="${HOME}/.pyenv"
+export PATH="${PYENV_ROOT}/bin:${PATH}"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+
+# PHPenv setup
+export PATH="$HOME/.phpenv/bin:$PATH"
+eval "$(phpenv init -)"
+
+# Cargo setup
 . "$HOME/.cargo/env"
 
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
-
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-[[ -s "/home/shelton/.gvm/scripts/gvm" ]] && source "/home/shelton/.gvm/scripts/gvm"
