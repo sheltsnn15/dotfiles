@@ -15,7 +15,15 @@ install_essentials() {
     echo "Updating package list and installing essential packages..."
     sudo apt-get update
 
-    packages=("build-essential" "vim-nox" "valgrind" "git" "gh" "zip" "unzip" "lazygit" "tmux" "xclip" "ca-certificates" "curl" "ninja-build" "gettext" "libtool" "libtool-bin" "autoconf" "automake" "cmake" "g++" "pkg-config" "unzip")
+    packages=(
+        "build-essential" "vim-nox" "valgrind" "git" "gh" "zip" "unzip" "tmux"
+        "xclip" "ca-certificates" "curl" "ninja-build" "gettext" "libtool"
+        "libtool-bin" "autoconf" "automake" "cmake" "g++" "pkg-config" "unzip"
+        "libssl-dev" "zlib1g-dev" "libbz2-dev" "libreadline-dev" "libsqlite3-dev"
+        "wget" "llvm" "libncurses5-dev" "xz-utils" "tk-dev" "libxml2-dev"
+        "libxmlsec1-dev" "libffi-dev" "liblzma-dev" "clang" "gdb" "make"
+    )
+
     for pkg in "${packages[@]}"; do
         if ! dpkg -l | grep -q $pkg; then
             sudo apt-get install -y $pkg
@@ -25,7 +33,32 @@ install_essentials() {
     done
 }
 
-# Function to install Go using goenv
+# Function to set up Git configuration
+setup_git() {
+    log "Setting up Git global configuration..."
+    git config --global user.name "Shelton Ngwenya"
+    git config --global user.email "shelt15.nn@gmail.com"
+}
+
+# Function to generate SSH key and add it to GitHub using the GitHub CLI
+setup_ssh_key_for_github() {
+    log "Generating SSH key for GitHub..."
+    ssh-keygen -t ed25519 -C "shelt15.nn@gmail.com" -f ~/.ssh/id_ed25519 -N ""
+    eval "$(ssh-agent -s)"
+    ssh-add ~/.ssh/id_ed25519
+    log "SSH key generated."
+
+    log "Adding SSH key to GitHub using gh CLI..."
+    if ! command -v gh &>/dev/null; then
+        log "GitHub CLI (gh) is not installed. Installing..."
+        sudo apt-get install -y gh
+    fi
+    gh auth login
+    gh ssh-key add ~/.ssh/id_ed25519.pub --title "My SSH Key"
+    log "SSH key added to GitHub."
+}
+
+# Function to install Go using goenv and latest version of Go
 install_goenv() {
     if [ ! -d "$HOME/.goenv" ]; then
         echo "Installing goenv..."
@@ -34,29 +67,19 @@ install_goenv() {
         echo 'export GOENV_ROOT="$HOME/.goenv"' >>~/.bashrc
         echo 'export PATH="$GOENV_ROOT/bin:$PATH"' >>~/.bashrc
         echo 'eval "$(goenv init -)"' >>~/.bashrc
-
-        # Add GOPATH and GOROOT to .bashrc
-        echo 'export GOROOT=$(goenv root)/versions/$(goenv version)/go' >>~/.bashrc
-        echo 'export GOPATH="$HOME/go"' >>~/.bashrc
-        echo 'export PATH="$GOROOT/bin:$PATH"' >>~/.bashrc
-        echo 'export PATH="$GOPATH/bin:$PATH"' >>~/.bashrc
+        export PATH="$GOROOT/bin:$PATH" >>~/.bashrc
+        export PATH="$PATH:$GOPATH/bin" >>~/.bashrc
 
         # Apply changes to current shell session
         source ~/.bashrc
     else
         echo "goenv is already installed."
     fi
-}
 
-# Function to install Go using goenv
-install_go_version() {
-    if ! command -v go &>/dev/null; then
-        echo "Installing Go..."
-        # Ensure goenv is initialized
-        source ~/.bashrc
-    else
-        echo "Go is already installed."
-    fi
+    # Install the latest Go version
+    latest_go_version=$(goenv install -l | grep -v - | tail -1)
+    goenv install $latest_go_version
+    goenv global $latest_go_version
 }
 
 # Function to install Node.js using n
@@ -65,11 +88,7 @@ install_node() {
         echo "Installing Node.js..."
         curl -L https://bit.ly/n-install | bash
 
-        # Add n to PATH in .bashrc
-        echo 'export N_PREFIX="$HOME/n"' >>~/.bashrc
-        echo 'export PATH="$N_PREFIX/bin:$PATH"' >>~/.bashrc
-
-        # Apply changes to current shell session
+        # No need to manually export the PATH, n installer takes care of it
         source ~/.bashrc
     else
         echo "Node.js is already installed."
@@ -81,13 +100,13 @@ install_rust() {
     if ! command -v rustc &>/dev/null; then
         echo "Installing Rust..."
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        echo 'source $HOME/.cargo/env' >>~/.bashrc
+        source $HOME/.cargo/env
     else
         echo "Rust is already installed."
     fi
 }
 
-# Function to install pyenv
+# Function to install pyenv and latest Python version
 install_pyenv() {
     if [ ! -d "$HOME/.pyenv" ]; then
         echo "Installing pyenv..."
@@ -95,6 +114,7 @@ install_pyenv() {
 
         echo 'export PYENV_ROOT="$HOME/.pyenv"' >>~/.bashrc
         echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >>~/.bashrc
+        echo 'eval "$(pyenv init --path)"' >>~/.bashrc
         echo 'eval "$(pyenv init -)"' >>~/.bashrc
 
         # Apply changes to current shell session
@@ -102,6 +122,11 @@ install_pyenv() {
     else
         echo "pyenv is already installed."
     fi
+
+    # Install the latest Python version
+    latest_python_version=$(pyenv install --list | grep -v - | grep -v b | tail -1)
+    pyenv install $latest_python_version
+    pyenv global $latest_python_version
 }
 
 # Function to install SDKMAN
@@ -109,6 +134,7 @@ install_sdkman() {
     if [ ! -d "$HOME/.sdkman" ]; then
         echo "Installing SDKMAN..."
         curl -s "https://get.sdkman.io" | bash
+        source "$HOME/.sdkman/bin/sdkman-init.sh"
     else
         echo "SDKMAN is already installed."
     fi
@@ -133,16 +159,6 @@ install_neovim() {
         make clean
     else
         echo "Neovim is already installed."
-    fi
-}
-
-# Function to install makedeb
-install_makedeb() {
-    if ! command -v makedeb &>/dev/null; then
-        echo "Installing makedeb..."
-        bash -ci "$(wget -qO - 'https://shlink.makedeb.org/install')"
-    else
-        echo "makedeb is already installed."
     fi
 }
 
@@ -183,75 +199,93 @@ install_tpm() {
     fi
 }
 
-# Function to install lazygit
+# Function to install lazygit using Go
 install_lazygit() {
     if ! command -v lazygit &>/dev/null; then
         echo "Installing lazygit..."
-        LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-        curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
-        tar xf lazygit.tar.gz lazygit
-        sudo install lazygit /usr/local/bin
-        rm lazygit.tar.gz lazygit
+        go install github.com/jesseduffield/lazygit@latest
     else
         echo "lazygit is already installed."
     fi
 }
 
-# Function to install lazydocker
+# Function to install lazydocker using Go
 install_lazydocker() {
     if ! command -v lazydocker &>/dev/null; then
         echo "Installing lazydocker..."
-        curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+        go install github.com/jesseduffield/lazydocker@latest
     else
         echo "lazydocker is already installed."
     fi
 }
 
-# Function to install Docker Engine
-# Function to install Docker Engine
-install_docker() {
-    if ! command -v docker &>/dev/null; then
-        echo "Installing Docker..."
-
-        # Step 1: Install Prerequisites
-        sudo apt update
-        sudo apt install -y apt-transport-https ca-certificates curl gnupg
-
-        # Step 2: Add Docker’s Official GPG Key
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker.gpg
-
-        # Step 3: Add Docker Repo to Linux Mint
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-
-        # Refresh package list
-        sudo apt update
-
-        # Step 4: Install Docker
-        sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        sudo usermod -aG docker $USER
+# Function to install usql using Go
+install_usql() {
+    if ! command -v usql &>/dev/null; then
+        echo "Installing usql..."
+        go install -tags most github.com/xo/usql@latest
     else
-        echo "Docker is already installed."
+        echo "usql is already installed."
     fi
+}
+
+# Function to install PlatformIO CLI
+install_platformio() {
+    if [ ! -d "$HOME/.platformio" ]; then
+        echo "Installing PlatformIO CLI..."
+        curl -fsSL https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py | python3
+
+        # Check if ~/.local/bin/ is in the PATH
+        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            echo "export PATH=\$HOME/.local/bin:\$PATH" >>~/.bashrc
+            echo "Added ~/.local/bin to PATH."
+            source ~/.bashrc
+        fi
+
+        # Create symlinks for PlatformIO
+        ln -s ~/.platformio/penv/bin/platformio ~/.local/bin/platformio
+        ln -s ~/.platformio/penv/bin/pio ~/.local/bin/pio
+        ln -s ~/.platformio/penv/bin/piodebuggdb ~/.local/bin/piodebuggdb
+
+        echo "PlatformIO CLI installation and symlinks created."
+    else
+        echo "PlatformIO CLI is already installed."
+    fi
+}
+
+# Function to install dnvm
+install_dnvm() {
+    echo "Installing dnvm..."
+    curl --proto '=https' -sSf https://dnvm.net/install.sh | sh
+}
+
+# Function to install phpenv
+install_phpenv() {
+    echo "Installing phpenv..."
+    curl -L https://raw.githubusercontent.com/phpenv/phpenv-installer/master/bin/phpenv-installer | bash
 }
 
 # Run all the functions
 install_essentials
+setup_git
+setup_ssh_key_for_github
 install_goenv
-install_go_version
 install_node
 install_rust
 install_pyenv
 install_sdkman
 install_neovim
-install_makedeb
 install_fzf
 install_fzf_tab_completion
 install_tpm
 install_lazygit
 install_lazydocker
-install_docker
+install_usql
+install_platformio
+install_dnvm
+install_phpenv
 
 # Re-source .bashrc to apply changes
 source ~/.bashrc
 
-echo "All tools installed successfully!"
+echo "All tools installed successfully! Please restart your session for the changes to take effect."
