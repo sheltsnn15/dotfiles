@@ -95,10 +95,12 @@ install_goenv() {
             exit 1
         }
 
-        # Add goenv to PATH
+        # Add goenv setup to .bashrc
         echo 'export GOENV_ROOT="$HOME/.goenv"' >>~/.bashrc
         echo 'export PATH="$GOENV_ROOT/bin:$PATH"' >>~/.bashrc
         echo 'eval "$(goenv init -)"' >>~/.bashrc
+        echo 'export PATH="$GOROOT/bin:$PATH"' >>~/.bashrc
+        echo 'export PATH="$PATH:$GOPATH/bin"' >>~/.bashrc
 
         # Source .bashrc to ensure goenv is in the current shell environment
         source ~/.bashrc
@@ -160,8 +162,8 @@ install_pyenv() {
             exit 1
         }
 
-        echo 'export PYENV_ROOT="$HOME/.pyenv"' >>~/.bashrc
-        echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >>~/.bashrc
+        echo 'export PYENV_ROOT="${HOME}/.pyenv"' >>~/.bashrc
+        echo 'export PATH="${PYENV_ROOT}/bin:${PATH}"' >>~/.bashrc
         echo 'eval "$(pyenv init --path)"' >>~/.bashrc
         echo 'eval "$(pyenv init -)"' >>~/.bashrc
 
@@ -311,8 +313,9 @@ install_platformio() {
         eval "$(pyenv init --path)"
         eval "$(pyenv init -)"
 
-        log "Installing PlatformIO CLI..."
-        curl -fsSL https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py | python3 || {
+        log "Downloading and installing PlatformIO CLI..."
+        curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+        python3 get-platformio.py || {
             log "PlatformIO installation failed."
             exit 1
         }
