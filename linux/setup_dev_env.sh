@@ -94,25 +94,32 @@ install_goenv() {
             exit 1
         }
 
-        # Add goenv to PATH and initialize it in the current shell session
+        # Add goenv to PATH
         echo 'export GOENV_ROOT="$HOME/.goenv"' >>~/.bashrc
         echo 'export PATH="$GOENV_ROOT/bin:$PATH"' >>~/.bashrc
         echo 'eval "$(goenv init -)"' >>~/.bashrc
 
-        # Source .bashrc to update PATH in the current shell session
+        # Source .bashrc to ensure goenv is in the current shell environment
         source ~/.bashrc
+
+        # Verify goenv command is now available
+        if ! command -v goenv &>/dev/null; then
+            log "goenv command not found after installation. Exiting."
+            exit 1
+        fi
     else
         log "goenv is already installed."
     fi
 
-    # Find and install the latest Go version
-    latest_go_version=$(~/.goenv/bin/goenv install -l | grep -v - | tail -1)
-    ~/.goenv/bin/goenv install "$latest_go_version" || {
+    # Install the latest Go version
+    latest_go_version=$(goenv install -l | grep -v - | tail -1)
+    goenv install "$latest_go_version" || {
         log "Failed to install Go version: $latest_go_version"
         exit 1
     }
-    ~/.goenv/bin/goenv global "$latest_go_version"
+    goenv global "$latest_go_version"
 }
+
 
 
 # Function to install Node.js using n
