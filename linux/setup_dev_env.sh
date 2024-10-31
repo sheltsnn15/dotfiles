@@ -86,7 +86,7 @@ setup_ssh_key_for_github() {
     log "SSH key added to GitHub."
 }
 
-# Function to install goenv and the latest version of Go
+# Function to install goenv
 install_goenv() {
     if [ ! -d "$HOME/.goenv" ]; then
         log "Installing goenv..."
@@ -113,17 +113,38 @@ install_goenv() {
     else
         log "goenv is already installed."
     fi
-
-    # Install the latest Go version
-    latest_go_version=$(goenv install -l | grep -v - | tail -1)
-    goenv install "$latest_go_version" || {
-        log "Failed to install Go version: $latest_go_version"
-        exit 1
-    }
-    goenv global "$latest_go_version"
 }
 
+# Function to install a specific Go version
+install_go_version() {
+    if ! command -v goenv &>/dev/null; then
+        log "goenv is not installed. Please install goenv first."
+        return
+    fi
 
+    log "Available Go versions:"
+    goenv install -l | grep -v - | tail -n 20
+
+    read -p "Enter the Go version you want to install (e.g., 1.17.1), or press Enter to install the latest version: " go_version
+
+    if [ -z "$go_version" ]; then
+        go_version=$(goenv install -l | grep -v - | tail -1)
+        log "Installing the latest Go version: $go_version"
+    else
+        log "Installing Go version: $go_version"
+    fi
+
+    goenv install "$go_version" || {
+        log "Failed to install Go version: $go_version"
+        exit 1
+    }
+
+    read -p "Do you want to set Go $go_version as global? (y/n): " set_global
+    if [[ "$set_global" == "y" || "$set_global" == "Y" ]]; then
+        goenv global "$go_version"
+        log "Set Go $go_version as global version."
+    fi
+}
 
 # Function to install Node.js using n
 install_node() {
@@ -153,7 +174,7 @@ install_rust() {
     fi
 }
 
-# Function to install pyenv and the latest Python version
+# Function to install pyenv
 install_pyenv() {
     if [ ! -d "$HOME/.pyenv" ]; then
         log "Installing pyenv..."
@@ -171,13 +192,37 @@ install_pyenv() {
     else
         log "pyenv is already installed."
     fi
+}
 
-    latest_python_version=$(pyenv install --list | grep -v - | grep -v b | tail -1)
-    pyenv install "$latest_python_version" || {
-        log "Failed to install Python version: $latest_python_version"
+# Function to install a specific Python version
+install_python_version() {
+    if ! command -v pyenv &>/dev/null; then
+        log "pyenv is not installed. Please install pyenv first."
+        return
+    fi
+
+    log "Available Python versions:"
+    pyenv install --list | grep -v - | grep -v b | tail -n 20
+
+    read -p "Enter the Python version you want to install (e.g., 3.9.7), or press Enter to install the latest version: " python_version
+
+    if [ -z "$python_version" ]; then
+        python_version=$(pyenv install --list | grep -v - | grep -v b | tail -1)
+        log "Installing the latest Python version: $python_version"
+    else
+        log "Installing Python version: $python_version"
+    fi
+
+    pyenv install "$python_version" || {
+        log "Failed to install Python version: $python_version"
         exit 1
     }
-    pyenv global "$latest_python_version"
+
+    read -p "Do you want to set Python $python_version as global? (y/n): " set_global
+    if [[ "$set_global" == "y" || "$set_global" == "Y" ]]; then
+        pyenv global "$python_version"
+        log "Set Python $python_version as global version."
+    fi
 }
 
 # Function to install SDKMAN
@@ -357,25 +402,89 @@ install_phpenv() {
     }
 }
 
-# Run all the functions
-install_essentials
-setup_git
-setup_ssh_key_for_github
-install_goenv
-install_node
-install_rust
-install_pyenv
-install_sdkman
-install_neovim
-install_fzf
-install_fzf_tab_completion
-install_tpm
-install_lazygit
-install_lazydocker
-install_usql
-install_platformio
-install_dnvm
-install_phpenv
+# Main menu function for interactive selection
+main_menu() {
+    while true; do
+        echo "Select an option:"
+        echo "1) Install essential packages"
+        echo "2) Setup Git configuration"
+        echo "3) Setup SSH key for GitHub"
+        echo "4) Install Oh My Bash"
+        echo "5) Install goenv"
+        echo "6) Install Go version"
+        echo "7) Install pyenv"
+        echo "8) Install Python version"
+        echo "9) Install Node.js"
+        echo "10) Install Rust"
+        echo "11) Install SDKMAN"
+        echo "12) Install Neovim"
+        echo "13) Install fzf"
+        echo "14) Install fzf-tab-completion"
+        echo "15) Install Tmux Plugin Manager"
+        echo "16) Install lazygit"
+        echo "17) Install lazydocker"
+        echo "18) Install usql"
+        echo "19) Install PlatformIO"
+        echo "20) Install dnvm"
+        echo "21) Install phpenv"
+        echo "22) Install all components"
+        echo "23) Exit"
+        read -p "Enter your choice [1-23]: " choice
+
+        case $choice in
+            1) install_essentials ;;
+            2) setup_git ;;
+            3) setup_ssh_key_for_github ;;
+            4) install_oh_my_bash ;;
+            5) install_goenv ;;
+            6) install_go_version ;;
+            7) install_pyenv ;;
+            8) install_python_version ;;
+            9) install_node ;;
+            10) install_rust ;;
+            11) install_sdkman ;;
+            12) install_neovim ;;
+            13) install_fzf ;;
+            14) install_fzf_tab_completion ;;
+            15) install_tpm ;;
+            16) install_lazygit ;;
+            17) install_lazydocker ;;
+            18) install_usql ;;
+            19) install_platformio ;;
+            20) install_dnvm ;;
+            21) install_phpenv ;;
+            22)
+                install_essentials
+                setup_git
+                setup_ssh_key_for_github
+                install_oh_my_bash
+                install_goenv
+                install_go_version
+                install_pyenv
+                install_python_version
+                install_node
+                install_rust
+                install_sdkman
+                install_neovim
+                install_fzf
+                install_fzf_tab_completion
+                install_tpm
+                install_lazygit
+                install_lazydocker
+                install_usql
+                install_platformio
+                install_dnvm
+                install_phpenv
+                ;;
+            23) log "Exiting..."; exit 0 ;;
+            *) echo "Invalid option. Please try again." ;;
+        esac
+        echo ""
+    done
+}
+
+# Run the main menu
+main_menu
 
 source ~/.bashrc
-log "All tools installed successfully! Please restart your session for the changes to take effect."
+log "All selected tools installed successfully! Please restart your session for the changes to take effect."
