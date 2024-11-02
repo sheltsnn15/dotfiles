@@ -1,170 +1,281 @@
 #!/bin/bash
 
+# Set verbose mode if passed as an argument
+verbose=false
+if [[ "$1" == "--verbose" ]]; then
+	verbose=true
+elif [[ "$1" == "--help" ]]; then
+	echo "Usage: ./platformio_cli.sh [--verbose] [--help]"
+	echo "--verbose   Enable detailed logging"
+	echo "--help      Display this help message"
+	exit 0
+fi
+
+# ANSI color codes for improved output formatting
+RESET='\033[0m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+
+log() {
+	local level="$1"
+	local message="$2"
+	[[ "$verbose" = true ]] && echo -e "${level}${message}${RESET}"
+}
+
+# Improved logging levels
+info() { log "$GREEN[INFO] " "$1"; }
+warn() { log "$YELLOW[WARN] " "$1"; }
+error() { log "$RED[ERROR] " "$1"; }
+
 # Check for necessary dependencies and prompt for installation
 check_dependencies() {
 	dependencies=("platformio" "jq")
 
 	for dep in "${dependencies[@]}"; do
-		if ! command -v $dep &>/dev/null; then
-			echo "$dep is not installed. Installing..."
-			pip install $dep
+		if ! command -v "$dep" &>/dev/null; then
+			warn "$dep is not installed. Installing..."
+			if ! pip install "$dep"; then
+				error "Failed to install $dep. Ensure pip is installed."
+				exit 1
+			fi
 		fi
 	done
 }
 
-# Function to detect connected boards
-detect_board() {
-	echo "Detecting connected boards..."
-	# List all connected serial devices (USB, ACM)
-	device=$(ls /dev/ttyUSB* 2>/dev/null || ls /dev/ttyACM* 2>/dev/null)
-
-	if [ -z "$device" ]; then
-		echo "No connected boards found."
+# Validate platformio.ini configuration file
+validate_platformio_ini() {
+	if ! [ -f platformio.ini ]; then
+		error "platformio.ini not found!"
 		return 1
-	else
-		echo "Detected board on: $device"
-		return 0
 	fi
+	if ! grep -q '\[env:' platformio.ini; then
+		error "No valid environments found in platformio.ini."
+		return 1
+	fi
+	return 0
 }
 
-# Function to parse platformio.ini and list environments
-list_environments() {
-	echo "Listing environments from platformio.ini..."
-	environments=$(grep -oP '\[env:[^\]]+' platformio.ini | cut -d: -f2)
+# Better Board Detection: Detect connected boards from various paths
+detect_board() {
+	info "Detecting connected boards..."
+	devices=($(ls /dev/ttyUSB* 2>/dev/null || ls /dev/ttyACM* 2>/dev/null || ls /dev/serial/by-id/* 2>/dev/null))
+	if [ ${#devices[@]} -eq 0 ]; then
+		error "No connected boards found."
+		return 1
+	elif [ ${#devices[@]} -eq 1 ]; then
+		info "Detected board on: ${devices[0]}"
+		device="${devices[0]}"
+	else
+		echo "Multiple boards detected:"
+		for i in "${!devices[@]}"; do
+			echo "$i) ${devices[$i]}"
+		done
+		while true; do
+			read -p "Select a board by index: " index
+			if [[ "$index" =~ ^[0-9]+$ ]] && [ "$index" -lt "${#devices[@]}" ]; then
+				device="${devices[$index]}"
+				info "Selected board: $device"
+				break
+			else
+				error "Invalid index. Please select a valid option."
+			fi
+		done
+	fi
+	return 0
+}
 
+# Function to list environments from platformio.ini
+list_environments() {
+	validate_platformio_ini || exit 1
+	info "Listing environments from platformio.ini..."
+	environments=$(grep -oP '\[env:[^\]]+' platformio.ini | cut -d: -f2)
 	if [ -z "$environments" ]; then
-		echo "No environments found in platformio.ini."
+		error "No environments found in platformio.ini."
 		exit 1
 	fi
-
-	echo "Available environments:"
 	echo "$environments"
 }
 
-# Function to select environment
-select_environment() {
-	if detect_board; then
-		# Auto-select environment based on board type (could add more sophisticated detection here)
-		if echo "$environments" | grep -q "esp32"; then
-			echo "Auto-selecting 'esp32' environment."
-			selected_env="esp32"
+# Function to prompt user for input with validation
+get_user_input() {
+	local prompt="$1"
+	local input
+	while true; do
+		read -p "$prompt" input
+		if [ -n "$input" ]; then
+			echo "$input"
+			break
 		else
-			echo "Multiple environments found, please select one:"
+			error "Input cannot be empty. Please try again."
+		fi
+	done
+}
+
+# Enhanced Environment Selection Logic
+select_environment() {
+	list_environments
+	if detect_board; then
+		matching_env=$(echo "$environments" | grep -m1 "$device" || true)
+		if [ -n "$matching_env" ]; then
+			info "Auto-selecting environment based on detected board: $matching_env"
+			selected_env="$matching_env"
+		else
+			warn "No matching environment found for the detected board. Please select an environment."
 			echo "$environments"
-			read -p "Enter the environment name: " selected_env
+			selected_env=$(get_user_input "Enter the environment name: ")
 		fi
 	else
-		# Manual selection if no board is detected
 		echo "No boards detected. Please select an environment:"
 		echo "$environments"
-		read -p "Enter the environment name: " selected_env
+		selected_env=$(get_user_input "Enter the environment name: ")
 	fi
 }
 
 # Function to initialize or open a PlatformIO project
 init_project() {
-	read -p "Enter the directory where you want to initialize the project (or open existing): " project_dir
-	mkdir -p $project_dir
-	cd $project_dir
+	project_dir=$(get_user_input "Enter the directory where you want to initialize the project (or open existing): ")
+	mkdir -p "$project_dir"
+	cd "$project_dir" || exit
 	if [ ! -f platformio.ini ]; then
-		echo "Initializing new PlatformIO project..."
+		info "Initializing new PlatformIO project..."
 		pio project init
 	else
-		echo "PlatformIO project detected."
+		info "PlatformIO project detected."
 	fi
-
-	# List environments after initializing the project
 	list_environments
 }
 
 # Function to build the PlatformIO project
 build_project() {
 	select_environment
-	echo "Building the PlatformIO project for environment: $selected_env..."
-	pio run -e $selected_env
-
-	# Generate compile_commands.json after building the project
+	info "Building the PlatformIO project for environment: $selected_env..."
+	if ! pio run -e "$selected_env"; then
+		error "Build failed."
+		exit 1
+	fi
 	generate_compile_commands
 }
 
 # Function to generate compile_commands.json
 generate_compile_commands() {
-	echo "Generating compile_commands.json for LSP integration..."
-	# Use PlatformIO's extra_scripts to generate compile_commands.json
-	if [ ! -d .pio/build/$selected_env ]; then
-		echo "Build directory for environment $selected_env not found!"
+	info "Generating compile_commands.json for LSP integration..."
+	if [ ! -d .pio/build/"$selected_env" ]; then
+		error "Build directory for environment $selected_env not found!"
 		exit 1
 	fi
 
 	compile_db=".pio/build/$selected_env/compile_commands.json"
-	if [ -f $compile_db ]; then
-		echo "compile_commands.json already exists."
+	if [ -f "$compile_db" ]; then
+		warn "compile_commands.json already exists."
 	else
-		echo "Generating compile_commands.json..."
-		pio run -t compiledb -e $selected_env
-	fi
-
-	# Check if Neovim LSP is properly configured to use this file
-	if [ -f $compile_db ]; then
-		echo "compile_commands.json generated at $compile_db"
-	else
-		echo "Failed to generate compile_commands.json."
+		info "Generating compile_commands.json..."
+		if ! pio run -t compiledb -e "$selected_env"; then
+			error "Failed to generate compile_commands.json."
+			exit 1
+		fi
 	fi
 }
 
-# Function to upload the firmware to the microcontroller
+# Function to upload firmware
 upload_firmware() {
 	select_environment
-	echo "Uploading firmware to the device for environment: $selected_env..."
-	pio run -t upload -e $selected_env
+	info "Uploading firmware to the device for environment: $selected_env..."
+	if ! pio run -t upload -e "$selected_env"; then
+		error "Upload failed."
+		exit 1
+	fi
 }
 
 # Function to open the serial monitor
 open_serial_monitor() {
-	echo "Opening the serial monitor..."
-	pio device monitor
+	local baud_rate
+	baud_rate=$(get_user_input "Enter the baud rate for the serial monitor (default 9600): ")
+	baud_rate="${baud_rate:-9600}"
+	info "Opening the serial monitor at baud rate: $baud_rate..."
+	if ! pio device monitor --baud "$baud_rate"; then
+		error "Failed to open serial monitor."
+		exit 1
+	fi
 }
 
-# Function to clean the build files
+# Function to clean the project
 clean_project() {
 	select_environment
-	echo "Cleaning the PlatformIO project..."
-	pio run --target clean -e $selected_env
+	info "Cleaning the PlatformIO project..."
+	if ! pio run --target clean -e "$selected_env"; then
+		error "Clean failed."
+		exit 1
+	fi
 }
 
 # Function to run tests
 run_tests() {
 	select_environment
-	echo "Running tests for the PlatformIO project..."
-	pio test -e $selected_env
+	info "Running tests for the PlatformIO project..."
+	if ! pio test -e "$selected_env"; then
+		error "Tests failed."
+		exit 1
+	fi
 }
 
 # Function to install project dependencies
 install_dependencies() {
-	echo "Installing project dependencies..."
-	pio lib install
+	info "Installing project dependencies..."
+	if ! pio lib install; then
+		error "Failed to install dependencies."
+		exit 1
+	fi
 }
 
 # Function to manage platforms and libraries
 manage_platforms_and_libraries() {
-	echo "Managing platforms and libraries..."
+	info "Managing platforms and libraries..."
 	echo "1. Install Platform"
-	echo "2. Install Library"
-	read -p "Choose an option: " choice
+	echo "2. Uninstall Platform"
+	echo "3. Install Library"
+	echo "4. Uninstall Library"
+	choice=$(get_user_input "Choose an option: ")
 
 	case $choice in
 	1)
-		read -p "Enter the platform you want to install (e.g., espressif32): " platform
-		pio platform install $platform
+		platform=$(get_user_input "Enter the platform you want to install (e.g., espressif32): ")
+		if ! pio pkg install -p "$platform"; then
+			error "Failed to install platform."
+		fi
 		;;
 	2)
-		read -p "Enter the library you want to install: " library
-		pio lib install $library
+		platform=$(get_user_input "Enter the platform you want to uninstall: ")
+		if ! pio pkg uninstall -p "$platform"; then
+			error "Failed to uninstall platform."
+		fi
+		;;
+	3)
+		library=$(get_user_input "Enter the library you want to install: ")
+		if ! pio pkg install -l "$library"; then
+			error "Failed to install library."
+		fi
+		;;
+	4)
+		library=$(get_user_input "Enter the library you want to uninstall: ")
+		if ! pio pkg uninstall -l "$library"; then
+			error "Failed to uninstall library."
+		fi
 		;;
 	*)
-		echo "Invalid option"
+		error "Invalid option"
 		;;
 	esac
+}
+
+# Update PlatformIO, libraries, and platforms
+update_all() {
+	info "Updating PlatformIO, libraries, and platforms..."
+	if ! pio pkg update; then
+		error "Update failed."
+		exit 1
+	fi
 }
 
 # Interactive menu to choose operations
@@ -178,8 +289,9 @@ menu() {
 	echo "6. Run tests"
 	echo "7. Install project dependencies"
 	echo "8. Manage platforms and libraries"
-	echo "9. Exit"
-	read -p "Choose an option: " choice
+	echo "9. Update PlatformIO, libraries, and platforms"
+	echo "10. Exit"
+	choice=$(get_user_input "Choose an option: ")
 
 	case $choice in
 	1) init_project ;;
@@ -190,8 +302,9 @@ menu() {
 	6) run_tests ;;
 	7) install_dependencies ;;
 	8) manage_platforms_and_libraries ;;
-	9) exit 0 ;;
-	*) echo "Invalid option" ;;
+	9) update_all ;;
+	10) exit 0 ;;
+	*) error "Invalid option" ;;
 	esac
 }
 
