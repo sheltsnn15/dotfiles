@@ -1,50 +1,123 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# platformio_cli.sh
+#
+# Description:
+#   This script emulates some core features of the PlatformIO VSCode extension:
+#   - Project initialization/opening
+#   - Environment listing and selection
+#   - Building, testing, uploading, and running (native)
+#   - Opening a serial monitor
+#   - Managing platforms and libraries
+#   - Generating compile_commands.json
+#
+# Prerequisites:
+#   - PlatformIO installed (via official installer script):
+#       https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html
+#   - 'jq' installed via your system’s package manager (apt, yum, brew, etc.)
+#
+# Usage:
+#   ./platformio_cli.sh [--verbose] [--help] [--build] [--upload] [--run-native]
+#   - --verbose: Enable detailed logging
+#   - --help:    Show usage
+#   - --build:   Immediately build the project (bypasses the menu)
+#   - --upload:  Immediately upload firmware (bypasses the menu)
+#   - --run-native: Immediately run the native binary (bypasses the menu)
+#
+#   Otherwise, the script will open an interactive menu.
+#
 
-# Set verbose mode if passed as an argument
+set -e
+set -o pipefail
+
+########################################
+# Global Variables / ANSI color codes
+########################################
 verbose=false
-if [[ "$1" == "--verbose" ]]; then
-	verbose=true
-elif [[ "$1" == "--help" ]]; then
-	echo "Usage: ./platformio_cli.sh [--verbose] [--help]"
-	echo "--verbose   Enable detailed logging"
-	echo "--help      Display this help message"
-	exit 0
-fi
-
-# ANSI color codes for improved output formatting
 RESET='\033[0m'
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 
+########################################
+# Logging functions
+########################################
 log() {
 	local level="$1"
 	local message="$2"
-	[[ "$verbose" = true ]] && echo -e "${level}${message}${RESET}"
+	if [[ "$level" == *"[INFO]"* ]]; then
+		# Only print info messages if verbose
+		[[ "$verbose" = true ]] && echo -e "${level}${message}${RESET}"
+	else
+		# For WARN or ERROR, always print
+		echo -e "${level}${message}${RESET}"
+	fi
 }
 
-# Improved logging levels
-info() { log "$GREEN[INFO] " "$1"; }
-warn() { log "$YELLOW[WARN] " "$1"; }
-error() { log "$RED[ERROR] " "$1"; }
+info() { log "$GREEN[INFO]" "$1"; }
+warn() { log "$YELLOW[WARN]" "$1"; }
+error() { log "$RED[ERROR]" "$1"; }
 
-# Check for necessary dependencies and prompt for installation
+########################################
+# Command-line Argument Parsing
+########################################
+for arg in "$@"; do
+	case $arg in
+	--verbose)
+		verbose=true
+		shift
+		;;
+	--help)
+		echo "Usage: $0 [--verbose] [--help] [--build] [--upload] [--run-native]"
+		echo "  --verbose    Enable detailed logging"
+		echo "  --help       Display this help message"
+		echo "  --build      Immediately build the project (skips menu)"
+		echo "  --upload     Immediately upload firmware (skips menu)"
+		echo "  --run-native Immediately run the native binary (skips menu)"
+		exit 0
+		;;
+	--build)
+		build_flag=true
+		;;
+	--upload)
+		upload_flag=true
+		;;
+	--run-native)
+		run_native_flag=true
+		;;
+	esac
+done
+
+########################################
+# Check Dependencies
+########################################
 check_dependencies() {
-	dependencies=("platformio" "jq")
+	# Check for either 'pio' or 'platformio'
+	if command -v pio &>/dev/null; then
+		info "Found 'pio' command."
+	elif command -v platformio &>/dev/null; then
+		info "Found 'platformio' command."
+	else
+		warn "PlatformIO is not installed on your system."
+		warn "Please install it using the official installer script:"
+		warn "    https://docs.platformio.org/en/latest/core/installation/methods/installer-script.html"
+		error "Exiting..."
+		exit 1
+	fi
 
-	for dep in "${dependencies[@]}"; do
-		if ! command -v "$dep" &>/dev/null; then
-			warn "$dep is not installed. Installing..."
-			if ! pip install "$dep"; then
-				error "Failed to install $dep. Ensure pip is installed."
-				exit 1
-			fi
-		fi
-	done
+	# Check if jq is installed
+	if ! command -v jq &>/dev/null; then
+		warn "jq is not installed on your system."
+		warn "Please install 'jq' via your system's package manager (apt, yum, brew, etc.) and re-run this script."
+		error "Exiting..."
+		exit 1
+	fi
 }
 
-# Validate platformio.ini configuration file
+########################################
+# platformio.ini Validation
+########################################
 validate_platformio_ini() {
 	if ! [ -f platformio.ini ]; then
 		error "platformio.ini not found!"
@@ -57,10 +130,14 @@ validate_platformio_ini() {
 	return 0
 }
 
-# Better Board Detection: Detect connected boards from various paths
+########################################
+# Better Board Detection with JSON
+########################################
 detect_board() {
-	info "Detecting connected boards..."
-	devices=($(pio device list --serial | grep -oP '(?<= - ).*' | awk '{print $1}'))
+	info "Detecting connected boards via JSON output..."
+	# We assume 'jq' is installed (checked above).
+	mapfile -t devices < <(pio device list --json-output | jq -r '.[].port')
+
 	if [ ${#devices[@]} -eq 0 ]; then
 		error "No connected boards found."
 		return 1
@@ -86,7 +163,9 @@ detect_board() {
 	return 0
 }
 
-# Function to list environments from platformio.ini
+########################################
+# List Environments in platformio.ini
+########################################
 list_environments() {
 	validate_platformio_ini || exit 1
 	info "Listing environments from platformio.ini..."
@@ -98,7 +177,9 @@ list_environments() {
 	echo "$environments"
 }
 
-# Function to prompt user for input with validation
+########################################
+# Prompt User for Input (non-empty)
+########################################
 get_user_input() {
 	local prompt="$1"
 	local input
@@ -113,10 +194,14 @@ get_user_input() {
 	done
 }
 
-# Enhanced Environment Selection Logic
+########################################
+# Enhanced Environment Selection
+########################################
 select_environment() {
 	list_environments
+
 	if detect_board; then
+		# Try to auto-match environment name with the selected device path
 		matching_env=$(echo "$environments" | grep -m1 "$device" || true)
 		if [ -n "$matching_env" ]; then
 			info "Auto-selecting environment based on detected board: $matching_env"
@@ -127,33 +212,54 @@ select_environment() {
 			selected_env=$(get_user_input "Enter the environment name: ")
 		fi
 	else
-		warn "No boards detected."
+		warn "No boards detected or no valid environment match."
 		info "Available environments:"
 		echo "$environments"
 		selected_env=$(get_user_input "Enter the environment name: ")
 	fi
 }
 
-# Function to initialize or open a PlatformIO project
+########################################
+# Initialize or Open a PlatformIO Project
+########################################
 init_project() {
+	local project_dir
 	project_dir=$(get_user_input "Enter the directory where you want to initialize the project (or open existing): ")
-	mkdir -p "$project_dir"
-	cd "$project_dir" || exit
-	if [ ! -f platformio.ini ]; then
+
+	# Ensure directory exists
+	if [ ! -d "$project_dir" ]; then
+		info "Directory '$project_dir' does not exist. Creating it..."
+		mkdir -p "$project_dir"
+	fi
+
+	# Attempt to cd into it
+	cd "$project_dir" || {
+		error "Failed to navigate to '$project_dir'. Exiting..."
+		exit 1
+	}
+
+	if [ -f platformio.ini ]; then
+		warn "A 'platformio.ini' file already exists in this directory."
+		warn "Continuing with the existing project."
+	else
 		info "Initializing new PlatformIO project..."
 		pio project init
-	else
-		info "PlatformIO project detected."
 	fi
+
 	list_environments
 }
 
+########################################
+# Extract 'platform' from a given env
+########################################
 get_platform_for_env() {
 	local env_name="$1"
 	grep -A 5 "\[env:$env_name\]" platformio.ini | grep "platform" | head -n1 | cut -d= -f2 | tr -d ' '
 }
 
-# Function to build the PlatformIO project
+########################################
+# Build the PlatformIO Project
+########################################
 build_project() {
 	select_environment
 	info "Building the PlatformIO project for environment: $selected_env..."
@@ -169,6 +275,9 @@ build_project() {
 	fi
 }
 
+########################################
+# Ask to Run Native Binary
+########################################
 ask_to_run_native_binary() {
 	local run_binary
 	run_binary=$(get_user_input "Do you want to run the native binary now? (y/n): ")
@@ -177,6 +286,9 @@ ask_to_run_native_binary() {
 	fi
 }
 
+########################################
+# Run the Native Binary
+########################################
 run_native_binary() {
 	# Prompt user to select an environment
 	select_environment
@@ -196,7 +308,6 @@ run_native_binary() {
 			local build_choice
 			build_choice=$(get_user_input "Would you like to build the project first? (y/n): ")
 			if [[ "$build_choice" =~ ^[Yy]$ ]]; then
-				# Build the project
 				build_project
 				# After building, check again if the binary exists
 				if [ -f "$binary_path" ]; then
@@ -215,7 +326,9 @@ run_native_binary() {
 	fi
 }
 
-# Function to generate compile_commands.json
+########################################
+# Generate compile_commands.json
+########################################
 generate_compile_commands() {
 	info "Generating compile_commands.json for LSP integration..."
 	if [ ! -d .pio/build/"$selected_env" ]; then
@@ -223,7 +336,7 @@ generate_compile_commands() {
 		exit 1
 	fi
 
-	compile_db=".pio/build/$selected_env/compile_commands.json"
+	local compile_db=".pio/build/$selected_env/compile_commands.json"
 	if [ -f "$compile_db" ]; then
 		warn "compile_commands.json already exists."
 	else
@@ -235,7 +348,9 @@ generate_compile_commands() {
 	fi
 }
 
-# Function to upload firmware
+########################################
+# Upload Firmware
+########################################
 upload_firmware() {
 	select_environment
 	if [ "$(get_platform_for_env "$selected_env")" == "native" ]; then
@@ -249,7 +364,9 @@ upload_firmware() {
 	fi
 }
 
-# Function to open the serial monitor
+########################################
+# Open the Serial Monitor
+########################################
 open_serial_monitor() {
 	local baud_rate
 	baud_rate=$(get_user_input "Enter the baud rate for the serial monitor (default 9600): ")
@@ -261,17 +378,21 @@ open_serial_monitor() {
 	fi
 }
 
-# Function to clean the project
+########################################
+# Clean the Project
+########################################
 clean_project() {
 	select_environment
-	info "Cleaning the PlatformIO project..."
+	info "Cleaning the PlatformIO project for environment: $selected_env..."
 	if ! pio run --target clean -e "$selected_env"; then
 		error "Clean failed."
 		exit 1
 	fi
 }
 
-# Function to run tests
+########################################
+# Run Tests
+########################################
 run_tests() {
 	select_environment
 	info "Running tests for the PlatformIO project..."
@@ -281,48 +402,62 @@ run_tests() {
 	fi
 }
 
-# Function to install project dependencies
+########################################
+# Install Project Dependencies
+########################################
 install_dependencies() {
-	info "Installing project dependencies..."
+	info "Installing project dependencies (libraries in platformio.ini)..."
 	if ! pio lib install; then
 		error "Failed to install dependencies."
 		exit 1
 	fi
 }
 
-# Function to manage platforms and libraries
+########################################
+# Manage Platforms and Libraries
+########################################
 manage_platforms_and_libraries() {
 	info "Managing platforms and libraries..."
 	echo "1. Install Platform"
 	echo "2. Uninstall Platform"
 	echo "3. Install Library"
 	echo "4. Uninstall Library"
+	echo "0. Return to main menu"
+	local choice
 	choice=$(get_user_input "Choose an option: ")
 
 	case $choice in
 	1)
+		local platform
 		platform=$(get_user_input "Enter the platform you want to install (e.g., espressif32): ")
 		if ! pio pkg install -p "$platform"; then
 			error "Failed to install platform."
 		fi
 		;;
 	2)
+		local platform
 		platform=$(get_user_input "Enter the platform you want to uninstall: ")
 		if ! pio pkg uninstall -p "$platform"; then
 			error "Failed to uninstall platform."
 		fi
 		;;
 	3)
+		local library
 		library=$(get_user_input "Enter the library you want to install: ")
 		if ! pio pkg install -l "$library"; then
 			error "Failed to install library."
 		fi
 		;;
 	4)
+		local library
 		library=$(get_user_input "Enter the library you want to uninstall: ")
 		if ! pio pkg uninstall -l "$library"; then
 			error "Failed to uninstall library."
 		fi
+		;;
+	0)
+		info "Returning to main menu..."
+		return
 		;;
 	*)
 		error "Invalid option"
@@ -330,7 +465,9 @@ manage_platforms_and_libraries() {
 	esac
 }
 
-# Update PlatformIO, libraries, and platforms
+########################################
+# Update PlatformIO, Libraries, Platforms
+########################################
 update_all() {
 	info "Updating PlatformIO, libraries, and platforms..."
 	if ! pio pkg update; then
@@ -339,20 +476,25 @@ update_all() {
 	fi
 }
 
-# Interactive menu to choose operations
+########################################
+# Main Interactive Menu
+########################################
 menu() {
-	echo "PlatformIO CLI Tool"
-	echo "1. Initialize/Open PlatformIO project"
-	echo "2. Build the project and generate compile_commands.json"
-	echo "3. Upload firmware"
-	echo "4. Open serial monitor"
-	echo "5. Clean the project"
-	echo "6. Run tests"
-	echo "7. Install project dependencies"
-	echo "8. Manage platforms and libraries"
-	echo "9. Update PlatformIO, libraries, and platforms"
-	echo "10. Run native binary"
-	echo "11. Exit"
+	echo
+	echo "=============== PlatformIO CLI Tool ==============="
+	echo "1) Initialize/Open PlatformIO project"
+	echo "2) Build the project + generate compile_commands.json"
+	echo "3) Upload firmware"
+	echo "4) Open serial monitor"
+	echo "5) Clean the project"
+	echo "6) Run tests"
+	echo "7) Install project dependencies"
+	echo "8) Manage platforms and libraries"
+	echo "9) Update PlatformIO, libraries, and platforms"
+	echo "10) Run native binary"
+	echo "11) Exit"
+	echo "===================================================="
+	local choice
 	choice=$(get_user_input "Choose an option: ")
 
 	case $choice in
@@ -371,10 +513,28 @@ menu() {
 	esac
 }
 
-# Check dependencies before running the script
+########################################
+# Script Execution Begins Here
+########################################
 check_dependencies
 
-# Main loop to show the interactive menu
+# If the user supplied an immediate flag to do something, handle it now:
+if [ "${build_flag:-false}" = true ]; then
+	build_project
+	exit 0
+fi
+
+if [ "${upload_flag:-false}" = true ]; then
+	upload_firmware
+	exit 0
+fi
+
+if [ "${run_native_flag:-false}" = true ]; then
+	run_native_binary
+	exit 0
+fi
+
+# Otherwise, launch the interactive menu
 while true; do
 	menu
 done

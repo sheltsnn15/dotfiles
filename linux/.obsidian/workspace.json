@@ -1,93 +1,72 @@
 {
   "main": {
-    "id": "386839bbdb853f3f",
+    "id": "2fb9138f97cc9a74",
     "type": "split",
     "children": [
       {
-        "id": "3117b8ba7e4e32c5",
+        "id": "9f8ec52564967f4b",
         "type": "tabs",
         "children": [
           {
-            "id": "b223377a7cb171fe",
+            "id": "8c1f2950b6abfd01",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Week 1_Fundamentals of Embedded Systems.md",
+                "file": "myNotes/TSCH.md",
                 "mode": "source",
                 "source": false
-              }
-            }
-          },
-          {
-            "id": "cd6652c7e76374bb",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "project_spec.md",
-                "mode": "source",
-                "source": false
-              }
+              },
+              "icon": "lucide-file",
+              "title": "TSCH"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       },
       {
-        "id": "86428b9f61c58953",
+        "id": "bf6e41396f85c261",
         "type": "tabs",
         "children": [
           {
-            "id": "c5dddef41e240208",
+            "id": "278000a8b55e4944",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "pdf",
               "state": {
-                "file": "Week 1_Fundamentals of Embedded Systems.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "d75e21530f95c952",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "work_plan.md",
-                "mode": "source",
-                "source": false
-              }
+                "file": "Labs/wsnsimpy-lab02.md.pdf"
+              },
+              "icon": "lucide-file-text",
+              "title": "wsnsimpy-lab02.md"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
   },
   "left": {
-    "id": "2a245ce3d8bce358",
+    "id": "53b17f968053baf9",
     "type": "split",
     "children": [
       {
-        "id": "0410ceb203b507d6",
+        "id": "1aea48562dbecec6",
         "type": "tabs",
         "children": [
           {
-            "id": "51e7a60a7049f8c5",
+            "id": "eead89260caf82c0",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
               "state": {
-                "sortOrder": "alphabetical"
-              }
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
             }
           },
           {
-            "id": "9e61d9b14ed8b5bb",
+            "id": "48c8fe1c774e9812",
             "type": "leaf",
             "state": {
               "type": "search",
@@ -98,47 +77,43 @@
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical"
-              }
+              },
+              "icon": "lucide-search",
+              "title": "Search"
             }
           },
           {
-            "id": "359ceae93dd266e8",
+            "id": "edda08818e5e3172",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
-              "state": {}
-            }
-          },
-          {
-            "id": "25234d618a1029f3",
-            "type": "leaf",
-            "state": {
-              "type": "recent-files",
-              "state": {}
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
             }
           }
         ],
-        "currentTab": 3
+        "currentTab": 2
       }
     ],
     "direction": "horizontal",
     "width": 300
   },
   "right": {
-    "id": "682657c6eadf410f",
+    "id": "b9387ee6c059c309",
     "type": "split",
     "children": [
       {
-        "id": "929e9007355c00aa",
+        "id": "fa530570f556cd63",
         "type": "tabs",
         "children": [
           {
-            "id": "4de084c09e9151c6",
+            "id": "d9ed656689cd2f8f",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "project_spec.md",
+                "file": "myNotes/Embedded_Systems_Networking-Learning_Outline.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -146,40 +121,53 @@
                 "searchQuery": "",
                 "backlinkCollapsed": false,
                 "unlinkedCollapsed": true
-              }
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Embedded_Systems_Networking-Learning_Outline"
             }
           },
           {
-            "id": "b4b5290b0155ddbd",
+            "id": "2f0a82d5369e5d6a",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "project_spec.md",
+                "file": "myNotes/Embedded_Systems_Networking-Learning_Outline.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
-              }
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Embedded_Systems_Networking-Learning_Outline"
             }
           },
           {
-            "id": "756f0d730c125269",
+            "id": "f8f5c03e4dcf304c",
             "type": "leaf",
             "state": {
               "type": "tag",
               "state": {
                 "sortOrder": "frequency",
-                "useHierarchy": true
-              }
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
             }
           },
           {
-            "id": "207d59558a6d1a40",
+            "id": "e8b382d6bcf38a2f",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
-                "file": "project_spec.md"
-              }
+                "file": "myNotes/Embedded_Systems_Networking-Learning_Outline.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Embedded_Systems_Networking-Learning_Outline"
             }
           }
         ]
@@ -200,16 +188,25 @@
       "table-editor-obsidian:Advanced Tables Toolbar": false
     }
   },
-  "active": "cd6652c7e76374bb",
+  "active": "278000a8b55e4944",
   "lastOpenFiles": [
-    "work_plan.md",
-    "web_sever_n_networking.md",
-    "Week 1_Fundamentals of Embedded Systems.md",
-    "Week 2_Development Tools and Environment.md",
-    "Types of Road Junctions.md",
-    "SUMO.md",
-    "project_spec.md",
-    "books_2_read.md",
-    "emulation.md"
+    "myNotes/TSCH.md",
+    "Labs/wsnsimpy-lab02.md.pdf",
+    "myNotes/Embedded_Systems_Networking-Learning_Outline.md",
+    "myNotes/duty-cycling.md",
+    "Labs/lab1/Lab setup wsnsimpy.pdf",
+    "Labs/lab2/basic_communication.py~",
+    "Labs/gradient_routing.md.pdf",
+    "Labs/lab3.md",
+    "Labs/lab2/basic_communication.py",
+    "Labs/lab2",
+    "Notes/03 TiSCH.pdf",
+    "Labs/lab1/hello-world.py~",
+    "myNotes/duty-cycling.md~",
+    "myNotes/TSCH.md~",
+    "myNotes/1743629127-DWID.md",
+    "Labs/lab1/lab1.md",
+    "Lab.md",
+    "Labs/lab1.md"
   ]
 }

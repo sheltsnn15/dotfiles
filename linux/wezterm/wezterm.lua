@@ -67,7 +67,7 @@ config.tab_bar_at_bottom = true
 config.use_fancy_tab_bar = false
 
 -- Color scheme
-config.color_scheme = "One Dark (Gogh)"
+config.color_scheme = "Catppuccin Macchiato"
 
 -- Miscellaneous
 config.audible_bell = "Disabled"
