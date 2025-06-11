@@ -155,7 +155,7 @@ bindsym $mod+r mode "resize"
 ######################################
 
 # start a terminal
-bindsym $mod+Return exec --no-startup-id kitty
+bindsym $mod+Return exec --no-startup-id wezterm-gui
 
 # kill focused window
 bindsym $mod+q kill
@@ -226,7 +226,7 @@ bindsym $mod+a focus parent
 bindsym $mod+Shift+n exec --no-startup-id ~/.config/i3/scripts/empty_workspace
 bindsym $mod+w exec --no-startup-id /usr/bin/firefox
 bindsym $mod+n exec --no-startup-id /usr/bin/thunar
-bindsym Print exec --no-startup-id flameshot gui
+bindsym Print exec --no-startup-id ~/.local/bin/flameshot-i3 gui
 bindsym $mod+d exec --no-startup-id xfce4-popup-whiskermenu
 bindsym $mod+c exec --no-startup-id xfce4-popup-clipman
 
@@ -259,13 +259,13 @@ set $ws10 "10"
 # bind program to workspace and focus to them on startup:
 assign [class="(?i)rambox"] $ws1
 assign [class="(?i)libreoffice(?i)"] $ws2
-assign [class="(?i)obsidian"] $ws3
-assign [class="(?i)draw.io|(?i)postman"] $ws4
-assign [class="(?i)firefox"] $ws5
-assign [class="(?i)google-chome-stable"] $ws5
-assign [class="(?i)jetbrains(?i)|(?i)pycharm(?i)|(?i)kitty"] $ws6
+assign [class="(?i)obsidian|(?i)masterpdfeditor5"] $ws3
+assign [class="(?i)draw.io|(?i)postman|(?i)mqtt-explorer"] $ws4
+assign [class="(?i)firefox|(?i)google-chome-stable"] $ws5
+assign [class="(?i)wezterm-gui"] $ws6
 assign [class="(?i)bitwarden"] $ws7
 assign [class="(?i)remmina"] $ws8
+assign [class="(?i)jetbrains(?i)|(?i)pycharm(?i)|(?i)sumo-gui|(?i)systemview|(?i)STM32CubeIDE|(?i)STM32CubeMX(?i)"] $ws9
 
 # automatic set focus new window if it opens on another workspace than the current:
 for_window [class=(?i)rambox] focus
